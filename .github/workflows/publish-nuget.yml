@@ -1,4 +1,4 @@
-﻿name: Publish to NuGet
+name: Publish to NuGet
 
 on:
   push:
@@ -17,11 +17,14 @@ env:
   DOTNET_NOLOGO: true
 
 jobs:
-  publish:
-    name: Build, Pack, and Publish
-    runs-on: ubuntu-latest
+publish:
+  name: Build, Pack, and Publish
+  runs-on: ubuntu-latest
+  permissions:
+    contents: write
+    packages: write
 
-    steps:
+  steps:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
