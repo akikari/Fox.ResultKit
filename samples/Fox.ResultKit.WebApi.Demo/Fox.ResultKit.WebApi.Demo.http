@@ -1,0 +1,56 @@
+@Fox.ResultKit.WebApi.Demo_HostAddress = http://localhost:5177
+
+###############################################################################
+# Classic Service Layer Endpoints
+###############################################################################
+
+### Create User (Classic)
+POST {{Fox.ResultKit.WebApi.Demo_HostAddress}}/api/classic/users
+Content-Type: application/json
+
+{
+  "email": "john.doe@example.com",
+  "password": "SecurePassword123"
+}
+
+### Get User by ID (Classic)
+# @name getUserClassic
+GET {{Fox.ResultKit.WebApi.Demo_HostAddress}}/api/classic/users/{{userId}}
+Accept: application/json
+
+### Update User Status (Classic)
+PATCH {{Fox.ResultKit.WebApi.Demo_HostAddress}}/api/classic/users/{{userId}}/status
+Content-Type: application/json
+
+{
+  "isActive": false
+}
+
+### Get User Summary (Classic)
+GET {{Fox.ResultKit.WebApi.Demo_HostAddress}}/api/classic/users/{{userId}}/summary
+Accept: application/json
+
+###############################################################################
+# CQRS with MediatR Endpoints
+###############################################################################
+
+### Create User (CQRS)
+# @name createUserCqrs
+POST {{Fox.ResultKit.WebApi.Demo_HostAddress}}/api/cqrs/users
+Content-Type: application/json
+
+{
+  "email": "jane.smith@example.com",
+  "password": "AnotherSecurePass456"
+}
+
+### Get User by ID (CQRS)
+@userId = 00000000-0000-0000-0000-000000000000
+GET {{Fox.ResultKit.WebApi.Demo_HostAddress}}/api/cqrs/users/{{userId}}
+Accept: application/json
+
+### List All Users (CQRS)
+GET {{Fox.ResultKit.WebApi.Demo_HostAddress}}/api/cqrs/users
+Accept: application/json
+
+###

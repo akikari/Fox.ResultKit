@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup Label="Framework and Language">
+        <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+        <Version>1.0.0</Version>
+        <IsPackable>true</IsPackable>
+        <AssemblyName>Fox.ResultKit</AssemblyName>
+        <RootNamespace>Fox.ResultKit</RootNamespace>
+    </PropertyGroup>
+
+    <PropertyGroup Label="Package Metadata">
+        <PackageId>Fox.ResultKit</PackageId>
+        <Title>Fox.ResultKit - Lightweight Result Pattern Library</Title>
+        <Description>Lightweight, type-safe result handling library for .NET applications with Railway Oriented Programming support. Eliminates exception-based error handling in business logic with zero dependencies.</Description>
+        <PackageTags>fox-resultkit;result;railway-oriented-programming;functional;error-handling;either;option;result-pattern</PackageTags>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+        <PackageReleaseNotes>Initial release with core Result and Result&lt;T&gt; types, functional extensions (Map, Bind, Ensure, Tap, Match), and exception handling utilities.</PackageReleaseNotes>
+    </PropertyGroup>
+
+    <PropertyGroup Label="Package Icon" Condition="Exists('..\..\assets\icon.png')">
+        <PackageIcon>icon.png</PackageIcon>
+    </PropertyGroup>
+
+    <PropertyGroup Label="Documentation and Symbols" Condition="'$(Configuration)'=='Debug'">
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <IncludeSymbols>true</IncludeSymbols>
+        <IncludeSource>true</IncludeSource>
+    </PropertyGroup>
+
+    <PropertyGroup Label="Documentation and Symbols" Condition="'$(Configuration)'=='Release'">
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <IncludeSymbols>true</IncludeSymbols>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+        <IncludeSource>false</IncludeSource>
+    </PropertyGroup>
+
+    <ItemGroup Label="Package Files">
+        <None Include="README.md" Pack="true" PackagePath="\" />
+        <None Include="..\..\LICENSE.txt" Pack="true" PackagePath="\" />
+        <None Include="..\..\assets\icon.png" Pack="true" PackagePath="\" Condition="Exists('..\..\assets\icon.png')" />
+    </ItemGroup>
+</Project>
