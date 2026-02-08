@@ -17,20 +17,20 @@ env:
   DOTNET_NOLOGO: true
 
 jobs:
-publish:
-  name: Build, Pack, and Publish
-  runs-on: ubuntu-latest
-  permissions:
-    contents: write
-    packages: write
+  publish:
+    name: Build, Pack, and Publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
 
-  steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-    - name: Setup .NET 8
+      - name: Setup .NET 8
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '8.0.x'
