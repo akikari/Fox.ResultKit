@@ -2,7 +2,7 @@
 
 [![Build Status](https://github.com/akikari/Fox.ResultKit/actions/workflows/build-and-test.yml/badge.svg?branch=main)](https://github.com/akikari/Fox.ResultKit/actions/workflows/build-and-test.yml)
 [![NuGet](https://img.shields.io/nuget/v/Fox.ResultKit.svg)](https://www.nuget.org/packages/Fox.ResultKit/)
-[![NuGet Downloads](https://img.shields.io/nuget/dt/Fox.ResultKit.svg)](https://www.nuget.org/packages/Fox.ResultKit/)
+[![NuGet Downloads](https://img.shields.io/nuget/dt/Fox.ResultKit?label=downloads)](https://www.nuget.org/packages/Fox.ResultKit/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A lightweight, type-safe result handling library for .NET applications that eliminates the need for exception-based error handling in business logic.
