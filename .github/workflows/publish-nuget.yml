@@ -31,66 +31,66 @@ jobs:
           fetch-depth: 0
 
       - name: Setup .NET 8
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: '8.0.x'
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
 
-    - name: Extract version from tag
-      id: get_version
-      run: |
-        if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-          VERSION="${{ github.event.inputs.version }}"
-        else
-          VERSION=${GITHUB_REF#refs/tags/v}
-        fi
-        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-        echo "Publishing version: $VERSION"
+      - name: Extract version from tag
+        id: get_version
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION=${GITHUB_REF#refs/tags/v}
+          fi
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "Publishing version: $VERSION"
 
-    - name: Restore dependencies
-      run: dotnet restore
+      - name: Restore dependencies
+        run: dotnet restore
 
-    - name: Build solution
-      run: dotnet build --configuration Release --no-restore /p:Version=${{ steps.get_version.outputs.VERSION }}
+      - name: Build solution
+        run: dotnet build --configuration Release --no-restore /p:Version=${{ steps.get_version.outputs.VERSION }}
 
-    - name: Run tests
-      run: dotnet test --configuration Release --no-build --verbosity normal
+      - name: Run tests
+        run: dotnet test --configuration Release --no-build --verbosity normal
 
-    - name: Pack Fox.ResultKit
-      run: dotnet pack src/Fox.ResultKit/Fox.ResultKit.csproj --configuration Release --no-build --output ./artifacts /p:PackageVersion=${{ steps.get_version.outputs.VERSION }}
+      - name: Pack Fox.ResultKit
+        run: dotnet pack src/Fox.ResultKit/Fox.ResultKit.csproj --configuration Release --no-build --output ./artifacts /p:PackageVersion=${{ steps.get_version.outputs.VERSION }}
 
-    - name: Pack Fox.ResultKit.MediatR
-      run: dotnet pack src/Fox.ResultKit.MediatR/Fox.ResultKit.MediatR.csproj --configuration Release --no-build --output ./artifacts /p:PackageVersion=${{ steps.get_version.outputs.VERSION }}
+      - name: Pack Fox.ResultKit.MediatR
+        run: dotnet pack src/Fox.ResultKit.MediatR/Fox.ResultKit.MediatR.csproj --configuration Release --no-build --output ./artifacts /p:PackageVersion=${{ steps.get_version.outputs.VERSION }}
 
-    - name: Publish Fox.ResultKit to NuGet
-      run: dotnet nuget push ./artifacts/Fox.ResultKit.${{ steps.get_version.outputs.VERSION }}.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+      - name: Publish Fox.ResultKit to NuGet
+        run: dotnet nuget push ./artifacts/Fox.ResultKit.${{ steps.get_version.outputs.VERSION }}.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
 
-    - name: Publish Fox.ResultKit.MediatR to NuGet
-      run: dotnet nuget push ./artifacts/Fox.ResultKit.MediatR.${{ steps.get_version.outputs.VERSION }}.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+      - name: Publish Fox.ResultKit.MediatR to NuGet
+        run: dotnet nuget push ./artifacts/Fox.ResultKit.MediatR.${{ steps.get_version.outputs.VERSION }}.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
 
-    - name: Upload artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: nuget-packages-${{ steps.get_version.outputs.VERSION }}
-        path: |
-          ./artifacts/*.nupkg
-          ./artifacts/*.snupkg
-        retention-days: 90
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-packages-${{ steps.get_version.outputs.VERSION }}
+          path: |
+            ./artifacts/*.nupkg
+            ./artifacts/*.snupkg
+          retention-days: 90
 
-    - name: Create GitHub Release
-      uses: softprops/action-gh-release@v1
-      with:
-        name: Release ${{ steps.get_version.outputs.VERSION }}
-        body: |
-          ## NuGet Packages
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Release ${{ steps.get_version.outputs.VERSION }}
+          body: |
+            ## NuGet Packages
 
-          - [Fox.ResultKit ${{ steps.get_version.outputs.VERSION }}](https://www.nuget.org/packages/Fox.ResultKit/${{ steps.get_version.outputs.VERSION }})
-          - [Fox.ResultKit.MediatR ${{ steps.get_version.outputs.VERSION }}](https://www.nuget.org/packages/Fox.ResultKit.MediatR/${{ steps.get_version.outputs.VERSION }})
+            - [Fox.ResultKit ${{ steps.get_version.outputs.VERSION }}](https://www.nuget.org/packages/Fox.ResultKit/${{ steps.get_version.outputs.VERSION }})
+            - [Fox.ResultKit.MediatR ${{ steps.get_version.outputs.VERSION }}](https://www.nuget.org/packages/Fox.ResultKit.MediatR/${{ steps.get_version.outputs.VERSION }})
 
-          See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details.
-        files: |
-          ./artifacts/*.nupkg
-          ./artifacts/*.snupkg
-        draft: false
-        prerelease: false
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details.
+          files: |
+            ./artifacts/*.nupkg
+            ./artifacts/*.snupkg
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
