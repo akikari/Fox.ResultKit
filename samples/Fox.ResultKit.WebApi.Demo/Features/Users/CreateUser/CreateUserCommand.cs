@@ -1,4 +1,4 @@
-﻿//==================================================================================================
+//==================================================================================================
 // CreateUser command and handler demonstrating CQRS with MediatR.
 // Command pattern implementation with ResultKit integration.
 //==================================================================================================
@@ -110,8 +110,7 @@ public class CreateUserCommandHandler(IUserRepository repository, ILogger<Create
     //==============================================================================================
     private async Task<bool> CheckEmailNotExistsAsync(string email, CancellationToken cancellationToken)
     {
-        var existingUser = await repository.FindByEmailAsync(email, cancellationToken);
-        return existingUser == null;
+        return await repository.FindByEmailAsync(email, cancellationToken) == null;
     }
 
     //==============================================================================================
