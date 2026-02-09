@@ -155,15 +155,24 @@ Console.WriteLine(output);
 ```csharp
 // Functional composition with Map, Bind, Ensure, Tap
 var result = await repository.FindByIdAsync(userId)
-    .ToResult($"User {userId} not found")
-    .Ensure(user => user.IsActive, "User is not active")
+    .ToResult(ResultError.Create("USER_NOT_FOUND", $"User {userId} not found"))
+    .Ensure(user => user.IsActive, ResultError.Create("USER_INACTIVE", "User is not active"))
     .Map(user => new UserDto(user.Id, user.Email, user.IsActive))
     .Tap(dto => logger.LogInformation("Retrieved user: {Email}", dto.Email));
 
 // Pattern matching for HTTP responses
 return result.Match<IActionResult>(
     onSuccess: dto => Ok(dto),
-    onFailure: error => NotFound(error)
+    onFailure: error =>
+    {
+        var (code, message) = ResultError.Parse(error);
+        return code switch
+        {
+            "USER_NOT_FOUND" => NotFound(new { error = message, code }),
+            "USER_INACTIVE" => StatusCode(403, new { error = message, code }),
+            _ => BadRequest(new { error = message, code = string.IsNullOrEmpty(code) ? null : code })
+        };
+    }
 );
 ```
 
@@ -242,7 +251,7 @@ public class UserService(IUserRepository repository, ILogger<UserService> logger
     {
         return await ValidateUserInput(email, password)
             .ToResult((Email: email, Password: password))
-            .EnsureAsync(_ => CheckEmailNotExistsAsync(email, cancellationToken), "Email already exists")
+            .EnsureAsync(_ => CheckEmailNotExistsAsync(email, cancellationToken), ResultError.Create("USER_EMAIL_EXISTS", "Email already exists"))
             .BindAsync(credentials => CreateAndSaveUserAsync(credentials.Email, credentials.Password, cancellationToken))
             .TapAsync(user => Task.Run(() => logger.LogInformation("User created: {UserId} - {Email}", user.Id, user.Email)))
             .TapFailureAsync(error => Task.Run(() => logger.LogError("User creation failed: {Error}", error)))
@@ -259,15 +268,15 @@ public class UserService(IUserRepository repository, ILogger<UserService> logger
     private static Result ValidateEmail(string email)
     {
         return Result.Success()
-            .Ensure(() => !string.IsNullOrWhiteSpace(email), "Email is required")
-            .Ensure(() => email.Contains('@'), "Invalid email format");
+            .Ensure(() => !string.IsNullOrWhiteSpace(email), ResultError.Create("VALIDATION_EMAIL_REQUIRED", "Email is required"))
+            .Ensure(() => email.Contains('@'), ResultError.Create("VALIDATION_EMAIL_FORMAT", "Invalid email format"));
     }
     
     private static Result ValidatePassword(string password)
     {
         return Result.Success()
-            .Ensure(() => !string.IsNullOrWhiteSpace(password), "Password is required")
-            .Ensure(() => password.Length >= 8, "Password must be at least 8 characters");
+            .Ensure(() => !string.IsNullOrWhiteSpace(password), ResultError.Create("VALIDATION_PASSWORD_REQUIRED", "Password is required"))
+            .Ensure(() => password.Length >= 8, ResultError.Create("VALIDATION_PASSWORD_LENGTH", "Password must be at least 8 characters"));
     }
     
     private async Task<bool> CheckEmailNotExistsAsync(string email, CancellationToken cancellationToken)
@@ -287,17 +296,111 @@ public class UserService(IUserRepository repository, ILogger<UserService> logger
 [HttpPost]
 [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
 [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
+[ProducesResponseType(typeof(object), StatusCodes.Status409Conflict)]
 public async Task<IActionResult> CreateUser([FromBody] CreateUserRequest request, CancellationToken cancellationToken)
 {
     ArgumentNullException.ThrowIfNull(request);
 
-    return (await userService.CreateUserAsync(request.Email, request.Password, cancellationToken))
-        .Match<Guid, IActionResult>(
-            onSuccess: userId => Ok(new { userId }),
-            onFailure: error => BadRequest(new { error })
-        );
+    var result = await userService.CreateUserAsync(request.Email, request.Password, cancellationToken);
+
+    return result.Match<Guid, IActionResult>(
+        onSuccess: userId => Ok(new { userId }),
+        onFailure: error =>
+        {
+            var (code, message) = ResultError.Parse(error);
+            return code switch
+            {
+                "USER_EMAIL_EXISTS" => Conflict(new { error = message, code }),
+                _ => BadRequest(new { error = message, code = string.IsNullOrEmpty(code) ? null : code })
+            };
+        }
+    );
 }
 ```
+
+### Error Code Convention (Advanced Pattern)
+
+Fox.ResultKit uses simple string-based errors for lightweight design. However, you can embed structured error codes using the **convention-based `ResultError` utility**:
+
+#### Convention Format
+
+Use the format: `"ERROR_CODE: Error message"`
+
+```csharp
+using Fox.ResultKit;
+
+// Creating structured errors
+Result.Failure(ResultError.Create("USER_EMAIL_EXISTS", "Email already exists"));
+Result<User>.Failure(ResultError.Create("USER_NOT_FOUND", "User does not exist"));
+
+// Parsing structured errors
+var (code, message) = ResultError.Parse("USER_NOT_FOUND: User does not exist");
+// code = "USER_NOT_FOUND"
+// message = "User does not exist"
+
+// Plain errors still work (backward compatible)
+var (code2, message2) = ResultError.Parse("Simple error message");
+// code2 = "" (empty)
+// message2 = "Simple error message"
+```
+
+#### HTTP Status Mapping Example
+
+```csharp
+[HttpPost]
+public async Task<IActionResult> CreateUser([FromBody] CreateUserRequest request, CancellationToken cancellationToken)
+{
+    var result = await userService.CreateUserAsync(request.Email, request.Password, cancellationToken);
+
+    return result.Match<Guid, IActionResult>(
+        onSuccess: userId => Ok(new { userId }),
+        onFailure: error =>
+        {
+            var (code, message) = ResultError.Parse(error);
+            return code switch
+            {
+                "USER_EMAIL_EXISTS" => Conflict(new { error = message, code }),
+                "USER_NOT_FOUND" => NotFound(new { error = message, code }),
+                "VALIDATION_EMAIL_REQUIRED" or "VALIDATION_EMAIL_FORMAT" => BadRequest(new { error = message, code }),
+                _ => BadRequest(new { error = message, code = string.IsNullOrEmpty(code) ? null : code })
+            };
+        }
+    );
+}
+```
+
+#### Service Layer with Error Codes
+
+```csharp
+private static Result ValidateEmail(string email)
+{
+    return Result.Success()
+        .Ensure(() => !string.IsNullOrWhiteSpace(email), 
+                ResultError.Create("VALIDATION_EMAIL_REQUIRED", "Email is required"))
+        .Ensure(() => email.Contains('@'), 
+                ResultError.Create("VALIDATION_EMAIL_FORMAT", "Invalid email format"));
+}
+
+public async Task<Result<UserDto>> GetUserDtoAsync(Guid userId, CancellationToken cancellationToken = default)
+{
+    return (await repository.FindByIdAsync(userId, cancellationToken))
+        .ToResult(ResultError.Create("USER_NOT_FOUND", $"User {userId} not found"))
+        .Ensure(u => u.IsActive, ResultError.Create("USER_INACTIVE", "User is not active"))
+        .Map(u => new UserDto(u.Id, u.Email, u.IsActive, u.CreatedAt));
+}
+```
+
+#### Benefits of ResultError
+
+- ✅ **Zero breaking changes** - Pure convention, no API modifications
+- ✅ **Flexible format** - Use any code format (numeric, alphanumeric, hierarchical)
+- ✅ **Opt-in** - Ignore if you don't need error codes
+- ✅ **Lightweight** - No additional dependencies or complexity
+- ✅ **HTTP mapping** - Easy status code selection based on error type
+- ✅ **I18n support** - Error codes can be mapped to localized messages
+- ✅ **Monitoring** - Structured error codes for logging and alerting
+
+See [WebApi.Demo](samples/Fox.ResultKit.WebApi.Demo) for complete implementation examples.
 
 ## 🏗️ API Reference
 
@@ -393,6 +496,18 @@ public async Task<IActionResult> CreateUser([FromBody] CreateUserRequest request
 | `TryAsync<T>(Func<Task<T>>, string error)` | Async version of Try |
 | `FromException<T>(Exception ex)` | Converts exception to Result&lt;T&gt; |
 | `FromException<T>(Exception ex, bool includeInner, bool includeStack)` | Detailed exception conversion |
+
+### ResultError Utility
+
+| Method | Description |
+|--------|-------------|
+| `ResultError.Create(string code, string message)` | Creates formatted error string "CODE: message" |
+| `ResultError.Parse(string error)` | Parses error into (Code, Message) tuple |
+
+**Convention format:** `"ERROR_CODE: Error message"`  
+**Example:** `ResultError.Create("USER_NOT_FOUND", "User does not exist")` → `"USER_NOT_FOUND: User does not exist"`
+
+See [Error Code Convention](#error-code-convention-advanced-pattern) section for usage examples.
 
 ## 🎯 Design Principles
 

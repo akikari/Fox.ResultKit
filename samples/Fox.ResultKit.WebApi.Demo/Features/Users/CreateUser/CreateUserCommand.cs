@@ -26,6 +26,8 @@ public record CreateUserCommand(string Email, string Password) : IRequest<Result
 //==================================================================================================
 public class CreateUserCommandHandler(IUserRepository repository, ILogger<CreateUserCommandHandler> logger) : IRequestHandler<CreateUserCommand, Result<Guid>>
 {
+    #region Public methods
+
     //==============================================================================================
     /// <summary>
     /// Handles CreateUser command.
@@ -43,10 +45,14 @@ public class CreateUserCommandHandler(IUserRepository repository, ILogger<Create
 
         return await ValidateCommand(request)
             .ToResult(request)
-            .EnsureAsync(_ => CheckEmailNotExistsAsync(request.Email, cancellationToken), "Email already exists")
+            .EnsureAsync(_ => CheckEmailNotExistsAsync(request.Email, cancellationToken), ResultError.Create("USER_EMAIL_EXISTS", "Email already exists"))
             .BindAsync(_ => CreateAndSaveUserAsync(request, cancellationToken))
             .TapAsync(userId => Task.Run(() => logger.LogInformation("User created via CQRS: {UserId} - {Email}", userId, request.Email)));
     }
+
+    #endregion
+
+    #region Private methods
 
     //==============================================================================================
     /// <summary>
@@ -79,8 +85,8 @@ public class CreateUserCommandHandler(IUserRepository repository, ILogger<Create
     private static Result ValidateEmail(string email)
     {
         return Result.Success()
-            .Ensure(() => !string.IsNullOrWhiteSpace(email), "Email is required")
-            .Ensure(() => email.Contains('@'), "Invalid email format");
+            .Ensure(() => !string.IsNullOrWhiteSpace(email), ResultError.Create("VALIDATION_EMAIL_REQUIRED", "Email is required"))
+            .Ensure(() => email.Contains('@'), ResultError.Create("VALIDATION_EMAIL_FORMAT", "Invalid email format"));
     }
 
     //==============================================================================================
@@ -96,8 +102,8 @@ public class CreateUserCommandHandler(IUserRepository repository, ILogger<Create
     private static Result ValidatePassword(string password)
     {
         return Result.Success()
-            .Ensure(() => !string.IsNullOrWhiteSpace(password), "Password is required")
-            .Ensure(() => password.Length >= 8, "Password must be at least 8 characters");
+            .Ensure(() => !string.IsNullOrWhiteSpace(password), ResultError.Create("VALIDATION_PASSWORD_REQUIRED", "Password is required"))
+            .Ensure(() => password.Length >= 8, ResultError.Create("VALIDATION_PASSWORD_LENGTH", "Password must be at least 8 characters"));
     }
 
     //==============================================================================================
@@ -127,4 +133,6 @@ public class CreateUserCommandHandler(IUserRepository repository, ILogger<Create
         await repository.AddAsync(user, cancellationToken);
         return Result<Guid>.Success(user.Id);
     }
+
+    #endregion
 }

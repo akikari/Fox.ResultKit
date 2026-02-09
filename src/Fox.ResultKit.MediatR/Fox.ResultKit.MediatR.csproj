@@ -2,7 +2,7 @@
 
     <PropertyGroup Label="Framework and Language">
         <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
-        <Version>1.0.0</Version>
+        <Version>1.1.0</Version>
         <IsPackable>true</IsPackable>
         <AssemblyName>Fox.ResultKit.MediatR</AssemblyName>
         <RootNamespace>Fox.ResultKit.MediatR</RootNamespace>
@@ -15,7 +15,7 @@
         <PackageTags>fox-resultkit;mediatr;cqrs;pipeline;behavior;railway-oriented-programming;error-handling;functional</PackageTags>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
-        <PackageReleaseNotes>Initial release with ResultPipelineBehavior for automatic ThrowIfFailure execution in MediatR request pipeline.</PackageReleaseNotes>
+        <PackageReleaseNotes>Version 1.1.0: Dependency updated to Fox.ResultKit 1.1.0 with ResultError utility support.</PackageReleaseNotes>
     </PropertyGroup>
 
     <PropertyGroup Label="Package Icon" Condition="Exists('..\..\assets\icon.png')">

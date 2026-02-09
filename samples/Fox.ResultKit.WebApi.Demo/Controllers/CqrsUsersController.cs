@@ -36,6 +36,7 @@ public class CqrsUsersController(IMediator mediator) : ControllerBase
     [HttpPost]
     [ProducesResponseType(typeof(object), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> CreateUser([FromBody] CreateUserRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -45,7 +46,15 @@ public class CqrsUsersController(IMediator mediator) : ControllerBase
 
         return result.Match<Guid, IActionResult>(
             onSuccess: userId => CreatedAtAction(nameof(GetUser), new { id = userId }, new { userId }),
-            onFailure: error => BadRequest(new { error })
+            onFailure: error =>
+            {
+                var (code, message) = ResultError.Parse(error);
+                return code switch
+                {
+                    "USER_EMAIL_EXISTS" => Conflict(new { error = message, code }),
+                    _ => BadRequest(new { error = message, code = string.IsNullOrEmpty(code) ? null : code })
+                };
+            }
         );
     }
 

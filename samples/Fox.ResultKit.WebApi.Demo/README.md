@@ -311,6 +311,141 @@ Fox.ResultKit.WebApi.Demo/
 ✅ **CQRS pattern** - Scalable architecture  
 ✅ **Testable** - Handlers are simple to unit test  
 
+## 🔖 Error Code Convention (ResultError)
+
+This demo showcases **convention-based error codes** using `ResultError` utility for HTTP status mapping.
+
+### Format
+
+Convention: `"ERROR_CODE: Error message"`
+
+```csharp
+// Service layer - creating errors with codes
+private static Result ValidateEmail(string email)
+{
+    return Result.Success()
+        .Ensure(() => !string.IsNullOrWhiteSpace(email), 
+                ResultError.Create("VALIDATION_EMAIL_REQUIRED", "Email is required"))
+        .Ensure(() => email.Contains('@'), 
+                ResultError.Create("VALIDATION_EMAIL_FORMAT", "Invalid email format"));
+}
+
+public async Task<Result<UserDto>> GetUserDtoAsync(Guid userId, CancellationToken cancellationToken = default)
+{
+    return (await repository.FindByIdAsync(userId, cancellationToken))
+        .ToResult(ResultError.Create("USER_NOT_FOUND", $"User {userId} not found"))
+        .Ensure(u => u.IsActive, ResultError.Create("USER_INACTIVE", "User is not active"))
+        .Map(u => new UserDto(u.Id, u.Email, u.IsActive, u.CreatedAt));
+}
+```
+
+### HTTP Status Mapping
+
+Controllers parse error codes and map to appropriate HTTP status codes:
+
+```csharp
+[HttpPost]
+public async Task<IActionResult> CreateUser([FromBody] CreateUserRequest request, CancellationToken cancellationToken)
+{
+    var result = await userService.CreateUserAsync(request.Email, request.Password, cancellationToken);
+
+    return result.Match<Guid, IActionResult>(
+        onSuccess: userId => Ok(new { userId }),
+        onFailure: error =>
+        {
+            var (code, message) = ResultError.Parse(error);
+            return code switch
+            {
+                "USER_EMAIL_EXISTS" => Conflict(new { error = message, code }),
+                "VALIDATION_EMAIL_REQUIRED" or "VALIDATION_EMAIL_FORMAT" 
+                    => BadRequest(new { error = message, code }),
+                _ => BadRequest(new { error = message, code = string.IsNullOrEmpty(code) ? null : code })
+            };
+        }
+    );
+}
+
+[HttpGet("{id:guid}")]
+public async Task<IActionResult> GetUser(Guid id, CancellationToken cancellationToken)
+{
+    var result = await userService.GetUserDtoAsync(id, cancellationToken);
+
+    return result.Match<UserDto, IActionResult>(
+        onSuccess: user => Ok(user),
+        onFailure: error =>
+        {
+            var (code, message) = ResultError.Parse(error);
+            return code switch
+            {
+                "USER_NOT_FOUND" => NotFound(new { error = message, code }),
+                "USER_INACTIVE" => StatusCode(403, new { error = message, code }),
+                _ => BadRequest(new { error = message, code = string.IsNullOrEmpty(code) ? null : code })
+            };
+        }
+    );
+}
+```
+
+### Error Codes Used in Demo
+
+| Error Code | HTTP Status | Description |
+|------------|-------------|-------------|
+| `USER_NOT_FOUND` | 404 Not Found | User does not exist |
+| `USER_EMAIL_EXISTS` | 409 Conflict | Email already registered |
+| `USER_INACTIVE` | 403 Forbidden | User account is inactive |
+| `VALIDATION_EMAIL_REQUIRED` | 400 Bad Request | Email field is required |
+| `VALIDATION_EMAIL_FORMAT` | 400 Bad Request | Email format is invalid |
+| `VALIDATION_PASSWORD_REQUIRED` | 400 Bad Request | Password field is required |
+| `VALIDATION_PASSWORD_LENGTH` | 400 Bad Request | Password too short |
+
+### Benefits
+
+✅ **Structured errors** - Easy HTTP status code selection  
+✅ **Client-friendly** - Error codes enable UI-side handling  
+✅ **I18n support** - Codes can map to localized messages  
+✅ **Monitoring** - Structured codes for alerting/dashboards  
+✅ **Backward compatible** - Plain errors still work  
+
+### Try It
+
+**Request with validation error:**
+```http
+POST /api/classic/users
+Content-Type: application/json
+
+{
+  "email": "",
+  "password": "short"
+}
+```
+
+**Response (400 Bad Request):**
+```json
+{
+  "error": "Email is required",
+  "code": "VALIDATION_EMAIL_REQUIRED"
+}
+```
+
+**Request with duplicate email:**
+```http
+POST /api/classic/users
+Content-Type: application/json
+
+{
+  "email": "existing@example.com",
+  "password": "ValidPass123"
+}
+```
+
+**Response (409 Conflict):**
+```json
+{
+  "error": "Email already exists",
+  "code": "USER_EMAIL_EXISTS"
+}
+```
+
 ## 📝 License
 
 Copyright (c) 2026 Károly Akácz. All rights reserved.

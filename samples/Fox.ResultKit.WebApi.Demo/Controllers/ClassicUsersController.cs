@@ -1,4 +1,4 @@
-﻿//==================================================================================================
+//==================================================================================================
 // Classic service-based controller demonstrating ResultKit with dependency injection.
 // ASP.NET Core Web API integration with Railway Oriented Programming patterns.
 //==================================================================================================
@@ -34,15 +34,25 @@ public class ClassicUsersController(UserService userService) : ControllerBase
     [HttpPost]
     [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> CreateUser([FromBody] CreateUserRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        return (await userService.CreateUserAsync(request.Email, request.Password, cancellationToken))
-            .Match<Guid, IActionResult>(
-                onSuccess: userId => Ok(new { userId }),
-                onFailure: error => BadRequest(new { error })
-            );
+        var result = await userService.CreateUserAsync(request.Email, request.Password, cancellationToken);
+
+        return result.Match<Guid, IActionResult>(
+            onSuccess: userId => Ok(new { userId }),
+            onFailure: error =>
+            {
+                var (code, message) = ResultError.Parse(error);
+                return code switch
+                {
+                    "USER_EMAIL_EXISTS" => Conflict(new { error = message, code }),
+                    _ => BadRequest(new { error = message, code = string.IsNullOrEmpty(code) ? null : code })
+                };
+            }
+        );
     }
 
     //==============================================================================================
@@ -59,13 +69,24 @@ public class ClassicUsersController(UserService userService) : ControllerBase
     [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(UserDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(object), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetUser(Guid id, CancellationToken cancellationToken)
     {
-        return (await userService.GetUserDtoAsync(id, cancellationToken))
-            .Match<UserDto, IActionResult>(
-                onSuccess: user => Ok(user),
-                onFailure: error => NotFound(new { error })
-            );
+        var result = await userService.GetUserDtoAsync(id, cancellationToken);
+
+        return result.Match<UserDto, IActionResult>(
+            onSuccess: user => Ok(user),
+            onFailure: error =>
+            {
+                var (code, message) = ResultError.Parse(error);
+                return code switch
+                {
+                    "USER_NOT_FOUND" => NotFound(new { error = message, code }),
+                    "USER_INACTIVE" => StatusCode(StatusCodes.Status403Forbidden, new { error = message, code }),
+                    _ => BadRequest(new { error = message, code = string.IsNullOrEmpty(code) ? null : code })
+                };
+            }
+        );
     }
 
     //==============================================================================================

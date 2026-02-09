@@ -1,4 +1,4 @@
-﻿//==================================================================================================
+//==================================================================================================
 // User service demonstrating ResultKit basic usage and functional pipelines.
 // Service layer implementation with Railway Oriented Programming patterns.
 //==================================================================================================
@@ -35,7 +35,7 @@ public class UserService(IUserRepository repository, ILogger<UserService> logger
     {
         return await ValidateUserInput(email, password)
             .ToResult((Email: email, Password: password))
-            .EnsureAsync(_ => CheckEmailNotExistsAsync(email, cancellationToken), "Email already exists")
+            .EnsureAsync(_ => CheckEmailNotExistsAsync(email, cancellationToken), ResultError.Create("USER_EMAIL_EXISTS", "Email already exists"))
             .BindAsync(credentials => CreateAndSaveUserAsync(credentials.Email, credentials.Password, cancellationToken))
             .TapAsync(user => Task.Run(() => logger.LogInformation("User created: {UserId} - {Email}", user.Id, user.Email)))
             .TapFailureAsync(error => Task.Run(() => logger.LogError("User creation failed: {Error}", error)))
@@ -56,8 +56,8 @@ public class UserService(IUserRepository repository, ILogger<UserService> logger
     public async Task<Result<UserDto>> GetUserDtoAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         return (await repository.FindByIdAsync(userId, cancellationToken))
-            .ToResult($"User {userId} not found")
-            .Ensure(u => u.IsActive, "User is not active")
+            .ToResult(ResultError.Create("USER_NOT_FOUND", $"User {userId} not found"))
+            .Ensure(u => u.IsActive, ResultError.Create("USER_INACTIVE", "User is not active"))
             .Map(u => new UserDto(u.Id, u.Email, u.IsActive, u.CreatedAt))
             .Tap(dto => logger.LogInformation("Retrieved user DTO: {UserId} - {Email}", dto.Id, dto.Email));
     }
@@ -168,8 +168,8 @@ public class UserService(IUserRepository repository, ILogger<UserService> logger
     private static Result ValidateEmail(string email)
     {
         return Result.Success()
-            .Ensure(() => !string.IsNullOrWhiteSpace(email), "Email is required")
-            .Ensure(() => email.Contains('@'), "Invalid email format");
+            .Ensure(() => !string.IsNullOrWhiteSpace(email), ResultError.Create("VALIDATION_EMAIL_REQUIRED", "Email is required"))
+            .Ensure(() => email.Contains('@'), ResultError.Create("VALIDATION_EMAIL_FORMAT", "Invalid email format"));
     }
 
     //==============================================================================================
@@ -185,8 +185,8 @@ public class UserService(IUserRepository repository, ILogger<UserService> logger
     private static Result ValidatePassword(string password)
     {
         return Result.Success()
-            .Ensure(() => !string.IsNullOrWhiteSpace(password), "Password is required")
-            .Ensure(() => password.Length >= 8, "Password must be at least 8 characters");
+            .Ensure(() => !string.IsNullOrWhiteSpace(password), ResultError.Create("VALIDATION_PASSWORD_REQUIRED", "Password is required"))
+            .Ensure(() => password.Length >= 8, ResultError.Create("VALIDATION_PASSWORD_LENGTH", "Password must be at least 8 characters"));
     }
 
     //==============================================================================================
