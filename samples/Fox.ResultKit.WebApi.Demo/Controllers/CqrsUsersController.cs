@@ -1,4 +1,4 @@
-﻿//==================================================================================================
+//==================================================================================================
 // CQRS controller demonstrating MediatR integration with ResultKit.
 // Command Query Responsibility Segregation pattern implementation.
 //==================================================================================================
@@ -22,7 +22,6 @@ namespace Fox.ResultKit.WebApi.Demo.Controllers;
 [Tags("CQRS with MediatR")]
 public class CqrsUsersController(IMediator mediator) : ControllerBase
 {
-
     //==============================================================================================
     /// <summary>
     /// Creates new user via CQRS command.
