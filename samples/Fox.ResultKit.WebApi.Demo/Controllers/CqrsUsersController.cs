@@ -4,6 +4,7 @@
 //==================================================================================================
 using Fox.ResultKit.WebApi.Demo.DTOs;
 using Fox.ResultKit.WebApi.Demo.Features.Users.CreateUser;
+using Fox.ResultKit.WebApi.Demo.Features.Users.CreateUserWithValidation;
 using Fox.ResultKit.WebApi.Demo.Features.Users.GetUser;
 using Fox.ResultKit.WebApi.Demo.Features.Users.ListUsers;
 using MediatR;
@@ -53,6 +54,58 @@ public class CqrsUsersController(IMediator mediator) : ControllerBase
                 {
                     "USER_EMAIL_EXISTS" => Conflict(new { error = message, code }),
                     _ => BadRequest(new { error = message, code = string.IsNullOrEmpty(code) ? null : code })
+                };
+            }
+        );
+    }
+
+    //==============================================================================================
+    /// <summary>
+    /// Creates new user via CQRS command demonstrating ErrorsResult validation pattern.
+    /// </summary>
+    /// <param name="request">User creation data.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>201 Created with user ID on success; 400 BadRequest with all validation errors.</returns>
+    /// <remarks>
+    /// CreateUserWithValidationCommand → MediatR.Send → Demonstrates separation:
+    /// 1. Validation phase: ErrorsResult collects ALL errors
+    /// 2. Domain phase: Result fail-fast for business logic
+    /// Better UX - user sees all validation problems at once.
+    /// </remarks>
+    //==============================================================================================
+    [HttpPost("with-validation")]
+    [ProducesResponseType(typeof(object), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> CreateUserWithValidation([FromBody] CreateUserRequest request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var command = new CreateUserWithValidationCommand(request.Email, request.Password);
+        var result = await mediator.Send(command, cancellationToken);
+
+        return result.Match<Guid, IActionResult>(
+            onSuccess: userId => CreatedAtAction(nameof(GetUser), new { id = userId }, new { userId }),
+            onFailure: error =>
+            {
+                // Check if error contains multiple validation errors (newline separated)
+                if (error.Contains(Environment.NewLine))
+                {
+                    // Multiple validation errors - parse and return array
+                    var errors = error.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries)
+                        .Select(ResultError.Parse)
+                        .Select(e => new { code = e.Code, message = e.Message })
+                        .ToList();
+
+                    return BadRequest(new { errors });
+                }
+
+                // Single error - standard handling
+                var (code, message) = ResultError.Parse(error);
+                return code switch
+                {
+                    "USER_EMAIL_EXISTS" => Conflict(new { error = message, code }),
+                    _ => BadRequest(new { error = message, code })
                 };
             }
         );

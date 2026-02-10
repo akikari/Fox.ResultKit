@@ -52,7 +52,7 @@ Fox.ResultKit provides a clean and functional approach to handle operation resul
 | **Learning Curve** | ⭐ Easy | ⭐⭐ Moderate | ⭐⭐ Moderate | ⭐⭐⭐ Steep |
 | **API Complexity** | Simple | Feature-rich | Moderate | Complex |
 | **Functional Extensions** | ✅ Map, Bind, Match | ✅ Full | ✅ Full | ✅ Full + Monads |
-| **Multiple Errors** | ❌ Single | ✅ List | ✅ List | ✅ NEL |
+| **Multiple Errors** | ✅ ErrorsResult | ✅ List | ✅ List | ✅ NEL |
 | **Typed Errors** | ❌ String only | ✅ Custom | ✅ Custom | ✅ Custom |
 | **Async Support** | ✅ Full | ✅ Full | ✅ Full | ✅ Full |
 | **Best For** | Clean domain logic | Rich validation | DDD projects | FP enthusiasts |
@@ -198,6 +198,25 @@ var validationResult = ResultCombineExtensions.Combine(
 
 // Convert to Result<T> with value if all validations pass
 var result = validationResult.ToResult(new CreateUserRequest(email, password));
+```
+
+### Fail-Fast Validation with Bind
+
+For efficient fail-fast validation chains (stops at first error):
+
+```csharp
+// Lazy evaluation - password validation only runs if email succeeds
+var validation = ValidateEmail(email)
+    .Bind(() => ValidatePassword(password))
+    .Bind(() => ValidateAge(age));
+
+if (validation.IsFailure)
+{
+    return BadRequest(new { error = validation.Error });
+}
+
+// Continue with domain logic
+var result = await CreateUserAsync(email, password);
 ```
 
 ### Exception Handling with Try
@@ -402,6 +421,92 @@ public async Task<Result<UserDto>> GetUserDtoAsync(Guid userId, CancellationToke
 
 See [WebApi.Demo](samples/Fox.ResultKit.WebApi.Demo) for complete implementation examples.
 
+### Validation with ErrorsResult (Collecting Multiple Errors)
+
+For better UX, you can collect **all validation errors** at once instead of failing fast on the first error.
+
+**Supports mixed Result and Result&lt;T&gt; types** thanks to the `IResult` interface:
+
+```csharp
+using Fox.ResultKit;
+
+// Validation phase - collect ALL errors (mixed Result and Result<T> supported)
+var validation = ErrorsResult.Collect(
+    ValidateEmail(email),        // Result
+    ValidatePassword(password),  // Result
+    ParseAge(ageInput)          // Result<int>
+);
+
+if (validation.IsFailure)
+{
+    // All errors available at once - better UX
+    var errors = validation.Errors
+        .Select(ResultError.Parse)
+        .Select(e => new { e.Code, e.Message })
+        .ToList();
+    
+    return BadRequest(new { errors });
+    // Response: { "errors": [
+    //   { "code": "VALIDATION_EMAIL_REQUIRED", "message": "Email is required" },
+    //   { "code": "VALIDATION_PASSWORD_LENGTH", "message": "Password must be at least 8 characters" },
+    //   { "code": "VALIDATION_AGE_MINIMUM", "message": "Must be at least 18 years old" }
+    // ]}
+}
+
+// Domain operations - fail-fast pipeline
+var result = await Result.Success()
+    .EnsureAsync(() => CheckEmailNotExistsAsync(email), "Email already exists")
+    .BindAsync(() => CreateUserAsync(email, password));
+```
+
+#### Best Practice: Separation of Concerns
+
+**Phase 1: Input Validation** → `ErrorsResult.Collect()` (show ALL errors)  
+**Phase 2: Domain Operations** → `Result` pipeline (fail-fast for business logic)
+
+```csharp
+[HttpPost]
+public async Task<IActionResult> CreateUser([FromBody] CreateUserRequest request)
+{
+    // 1. Validation phase - collect ALL input validation errors
+    var validation = ErrorsResult.Collect(
+        ValidateEmail(request.Email),
+        ValidatePassword(request.Password)
+    );
+
+    if (validation.IsFailure)
+    {
+        var errors = validation.Errors
+            .Select(ResultError.Parse)
+            .Select(e => new { e.Code, e.Message })
+            .ToList();
+        return BadRequest(new { errors });
+    }
+
+    // 2. Domain pipeline - fail-fast (business logic errors)
+    var result = await Result.Success()
+        .EnsureAsync(() => CheckEmailNotExistsAsync(request.Email), 
+                     ResultError.Create("USER_EMAIL_EXISTS", "Email already exists"))
+        .BindAsync(() => CreateAndSaveUserAsync(request));
+
+    return result.Match(
+        onSuccess: userId => CreatedAtAction(nameof(GetUser), new { id = userId }, new { userId }),
+        onFailure: error =>
+        {
+            var (code, message) = ResultError.Parse(error);
+            return code == "USER_EMAIL_EXISTS" 
+                ? Conflict(new { error = message, code }) 
+                : BadRequest(new { error = message, code });
+        }
+    );
+}
+```
+
+**Why separate?**
+- ✅ Input validation: Better UX (show all errors at once)
+- ✅ Domain logic: Fail-fast makes sense (e.g., if email exists, don't continue)
+- ✅ Clear separation: Input vs. business logic concerns
+
 ## 🏗️ API Reference
 
 ### Result
@@ -427,6 +532,34 @@ See [WebApi.Demo](samples/Fox.ResultKit.WebApi.Demo) for complete implementation
 | `Error` | Error message (null if success) |
 | `ThrowIfFailure()` | Throws exception if result is failure |
 
+### ResultError
+
+| Method | Description |
+|--------|-------------|
+| `ResultError.Create(string code, string message)` | Creates structured error string in "CODE: message" format |
+| `ResultError.Parse(string error)` | Parses error into (Code, Message) tuple |
+
+### IResult
+
+| Member | Description |
+|--------|-------------|
+| `IsSuccess` | Returns true if operation succeeded |
+| `IsFailure` | Returns true if operation failed |
+| `Error` | Error message (null if success) |
+
+*Common interface for `Result` and `Result<T>`, enabling polymorphic error collection and mixed-type scenarios.*
+
+### ErrorsResult
+
+| Member | Description |
+|--------|-------------|
+| `ErrorsResult.Success()` | Creates successful result with no errors |
+| `ErrorsResult.Collect(params IResult[])` | Collects multiple results (supports mixed Result and Result&lt;T&gt;), aggregates all errors |
+| `IsSuccess` | Returns true if all operations succeeded |
+| `IsFailure` | Returns true if any operation failed |
+| `Errors` | Read-only list of all error messages |
+| `ToResult()` | Converts to Result with combined error message |
+
 ### Railway Oriented Programming Extensions
 
 #### Transformation
@@ -441,6 +574,7 @@ See [WebApi.Demo](samples/Fox.ResultKit.WebApi.Demo) for complete implementation
 
 | Method | Description |
 |--------|-------------|
+| `Bind(this Result, Func<Result>)` | Chains non-generic Result operations (fail-fast validation chains) |
 | `Bind<T, U>(this Result<T>, Func<T, Result<U>>)` | Chains operations that return Result |
 | `BindAsync<T, U>(this Result<T>, Func<T, Task<Result<U>>>)` | Async bind |
 | `BindAsync<T, U>(this Task<Result<T>>, Func<T, Task<Result<U>>>)` | Async result to async bind |

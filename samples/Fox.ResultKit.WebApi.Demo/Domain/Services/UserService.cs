@@ -83,18 +83,37 @@ public class UserService(IUserRepository repository, ILogger<UserService> logger
 
     //==============================================================================================
     /// <summary>
-    /// Validates user input using Combine for multiple validations.
+    /// Validates user input using fail-fast validation chain.
     /// </summary>
     /// <param name="email">Email to validate.</param>
     /// <param name="password">Password to validate.</param>
     /// <returns>Result.Success if valid, Result.Failure otherwise.</returns>
     /// <remarks>
-    /// ValidateEmail + ValidatePassword → Combine.
+    /// ValidateEmail → Bind → ValidatePassword (true fail-fast: stops at first error).
+    /// Password validation only executes if email validation succeeds (lazy evaluation).
     /// </remarks>
     //==============================================================================================
     public Result ValidateUserInput(string email, string password)
     {
-        return ResultCombineExtensions.Combine(
+        return ValidateEmail(email)
+            .Bind(() => ValidatePassword(password));
+    }
+
+    //==============================================================================================
+    /// <summary>
+    /// Validates user input collecting all validation errors.
+    /// </summary>
+    /// <param name="email">Email to validate.</param>
+    /// <param name="password">Password to validate.</param>
+    /// <returns>ErrorsResult with all validation errors collected.</returns>
+    /// <remarks>
+    /// ValidateEmail + ValidatePassword → ErrorsResult.Collect (collects all errors).
+    /// Use this for better UX - shows all validation errors at once.
+    /// </remarks>
+    //==============================================================================================
+    public ErrorsResult ValidateUserInputWithErrors(string email, string password)
+    {
+        return ErrorsResult.Collect(
             ValidateEmail(email),
             ValidatePassword(password));
     }
@@ -232,16 +251,16 @@ public class UserService(IUserRepository repository, ILogger<UserService> logger
 
     //==============================================================================================
     /// <summary>
-    /// Saves user status change (demo: logging only).
+    /// Saves user changes to repository.
     /// </summary>
     /// <param name="user">User to save.</param>
-    /// <param name="_">Unused cancellation token (demo purposes).</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Completed task.</returns>
     //==============================================================================================
-    private Task SaveUserAsync(User user, CancellationToken _)
+    private async Task SaveUserAsync(User user, CancellationToken cancellationToken)
     {
+        await repository.UpdateAsync(user, cancellationToken);
         logger.LogInformation("User {UserId} status updated to {IsActive}", user.Id, user.IsActive);
-        return Task.CompletedTask;
     }
 
     #endregion

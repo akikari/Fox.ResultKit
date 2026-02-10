@@ -7,6 +7,64 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+<!-- No unreleased changes yet -->
+
+## [1.2.0] - 2025-01-23
+
+### Added
+
+#### Fox.ResultKit (Core Library)
+- `IResult` interface - Common contract for Result and Result<T> enabling polymorphic operations
+- `ErrorsResult` record struct for collecting multiple validation errors
+- `ErrorsResult.Collect(params IResult[])` - Aggregates errors from mixed Result and Result<T> types
+- `ErrorsResult.ToResult()` - Converts ErrorsResult to single Result with combined error message
+- `Bind(this Result, Func<Result>)` extension - Chains non-generic Result operations for fail-fast validation chains
+- Validation-first pattern: Collect all validation errors (better UX) before domain pipeline (fail-fast)
+- Support for mixed Result and Result<T> types in error collection scenarios
+
+#### Fox.ResultKit.MediatR
+- Updated dependency to Fox.ResultKit 1.2.0
+- Documentation updated with ErrorsResult validation examples in MediatR handlers
+
+#### Documentation
+- Added comprehensive ErrorsResult documentation to README
+- Validation-first pattern best practices and examples
+- Updated comparison table: Multiple Errors ✅ ErrorsResult
+- ErrorsResult examples in all package READMEs (Core, MediatR)
+
+#### Samples
+- New `/api/classic/users/with-validation` endpoint demonstrating ErrorsResult in classic controller
+- New `/api/cqrs/users/with-validation` endpoint demonstrating ErrorsResult in CQRS controller
+- `CreateUserWithValidationCommand` handler showing validation-first pattern
+- `UserService.ValidateUserInputWithErrors()` method for input validation aggregation
+- Updated `.http` file with validation examples and expected error responses
+
+### Changed
+- Version bumped to 1.2.0 for both Fox.ResultKit and Fox.ResultKit.MediatR packages
+
+## [1.1.0] - 2025-01-22
+
+### Added
+
+#### Fox.ResultKit (Core Library)
+- `ResultError` utility class for convention-based error code parsing and formatting
+- `ResultError.Create(code, message)` - Creates formatted error string with code prefix
+- `ResultError.Parse(error)` - Extracts error code and message from formatted string
+- Error code convention: `"[ERROR_CODE] Message"` format for structured error handling
+
+#### Documentation
+- Added ResultError convention documentation to README
+- Error code convention examples and best practices
+- Package README updated with ResultError usage examples
+
+#### Samples
+- Updated demo application to use ResultError convention throughout
+- Error code examples: `USER_NOT_FOUND`, `USER_EMAIL_EXISTS`, `USER_INACTIVE`, validation error codes
+- Controller pattern matching with ResultError.Parse for typed error responses
+
+### Changed
+- Version bumped to 1.1.0 for Fox.ResultKit package
+
 ## [1.0.0] - 2026-02-07
 
 ### Added
@@ -47,5 +105,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Controller-level error handling with pattern matching
   - Functional validation pipelines
 
-[Unreleased]: https://github.com/akikari/Fox.ResultKit/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/akikari/Fox.ResultKit/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/akikari/Fox.ResultKit/compare/v1.1.0...v1.2.0
+[1.1.0]: https://github.com/akikari/Fox.ResultKit/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/akikari/Fox.ResultKit/releases/tag/v1.0.0

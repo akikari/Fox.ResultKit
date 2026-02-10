@@ -1,53 +1,74 @@
 //==================================================================================================
-// CreateUser command and handler demonstrating CQRS with MediatR.
-// Command pattern implementation with ResultKit integration.
+// CreateUserWithValidation command demonstrating ErrorsResult pattern in CQRS.
+// Shows separation of validation phase and domain operations.
 //==================================================================================================
 using Fox.ResultKit.WebApi.Demo.Domain.Models;
 using Fox.ResultKit.WebApi.Demo.Domain.Repositories;
 using MediatR;
 
-namespace Fox.ResultKit.WebApi.Demo.Features.Users.CreateUser;
+namespace Fox.ResultKit.WebApi.Demo.Features.Users.CreateUserWithValidation;
 
 //==================================================================================================
 /// <summary>
-/// CreateUser command.
+/// CreateUserWithValidation command demonstrating ErrorsResult for validation.
 /// </summary>
 /// <param name="Email">User email address.</param>
 /// <param name="Password">User password.</param>
 //==================================================================================================
-public record CreateUserCommand(string Email, string Password) : IRequest<Result<Guid>>;
+public record CreateUserWithValidationCommand(string Email, string Password) : IRequest<Result<Guid>>;
 
 //==================================================================================================
 /// <summary>
-/// CreateUser command handler.
+/// CreateUserWithValidation command handler showing validation-first pattern.
 /// </summary>
 /// <param name="repository">Repository for user data access.</param>
 /// <param name="logger">Logger instance for diagnostics.</param>
+/// <remarks>
+/// Demonstrates best practice:
+/// Phase 1: Input validation with ErrorsResult.Collect (show all errors)
+/// Phase 2: Domain operations with Result fail-fast (business logic)
+/// </remarks>
 //==================================================================================================
-public class CreateUserCommandHandler(IUserRepository repository, ILogger<CreateUserCommandHandler> logger) : IRequestHandler<CreateUserCommand, Result<Guid>>
+public class CreateUserWithValidationCommandHandler(IUserRepository repository, ILogger<CreateUserWithValidationCommandHandler> logger)
+    : IRequestHandler<CreateUserWithValidationCommand, Result<Guid>>
 {
     #region Public methods
 
     //==============================================================================================
     /// <summary>
-    /// Handles CreateUser command.
+    /// Handles CreateUserWithValidation command with separate validation and domain phases.
     /// </summary>
-    /// <param name="request">CreateUser command.</param>
+    /// <param name="request">CreateUserWithValidation command.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>Created user ID on success; Result.Failure on validation error.</returns>
-    /// <remarks>
-    /// ValidateCommand → EnsureAsync (email uniqueness) → BindAsync (User creation + AddAsync) → TapAsync (logging).
-    /// </remarks>
+    /// <returns>Created user ID on success; Result.Failure on error.</returns>
     //==============================================================================================
-    public async Task<Result<Guid>> Handle(CreateUserCommand request, CancellationToken cancellationToken)
+    public async Task<Result<Guid>> Handle(CreateUserWithValidationCommand request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        return await ValidateCommand(request)
-            .ToResult(request)
-            .EnsureAsync(_ => CheckEmailNotExistsAsync(request.Email, cancellationToken), ResultError.Create("USER_EMAIL_EXISTS", "Email already exists"))
-            .BindAsync(_ => CreateAndSaveUserAsync(request, cancellationToken))
-            .TapAsync(userId => Task.Run(() => logger.LogInformation("User created via CQRS: {UserId} - {Email}", userId, request.Email)));
+        // Phase 1: Input validation - collect ALL errors (better UX)
+        var validation = ValidateCommandWithErrors(request);
+        if (validation.IsFailure)
+        {
+            // Convert ErrorsResult to Result for return type compatibility
+            return Result<Guid>.Failure(string.Join(Environment.NewLine, validation.Errors));
+        }
+
+        // Phase 2: Domain operations - fail-fast pipeline
+        var emailExistsCheck = await CheckEmailNotExistsAsync(request.Email, cancellationToken);
+        if (!emailExistsCheck)
+        {
+            return Result<Guid>.Failure(ResultError.Create("USER_EMAIL_EXISTS", "Email already exists"));
+        }
+
+        var createResult = await CreateAndSaveUserAsync(request, cancellationToken);
+        if (createResult.IsFailure)
+        {
+            return createResult;
+        }
+
+        logger.LogInformation("User created via CQRS with validation: {UserId} - {Email}", createResult.Value, request.Email);
+        return createResult;
     }
 
     #endregion
@@ -56,17 +77,14 @@ public class CreateUserCommandHandler(IUserRepository repository, ILogger<Create
 
     //==============================================================================================
     /// <summary>
-    /// Validates CreateUser command (combined email and password validation).
+    /// Validates CreateUserWithValidation command collecting all validation errors.
     /// </summary>
     /// <param name="command">Command to validate.</param>
-    /// <returns>Result.Success if valid, Result.Failure otherwise.</returns>
-    /// <remarks>
-    /// ValidateEmail + ValidatePassword → Combine (fail-fast: stops at first error).
-    /// </remarks>
+    /// <returns>ErrorsResult with all validation errors collected.</returns>
     //==============================================================================================
-    private static Result ValidateCommand(CreateUserCommand command)
+    private static ErrorsResult ValidateCommandWithErrors(CreateUserWithValidationCommand command)
     {
-        return ResultCombineExtensions.Combine(
+        return ErrorsResult.Collect(
             ValidateEmail(command.Email),
             ValidatePassword(command.Password)
         );
@@ -78,9 +96,6 @@ public class CreateUserCommandHandler(IUserRepository repository, ILogger<Create
     /// </summary>
     /// <param name="email">Email to validate.</param>
     /// <returns>Result.Success if valid, Result.Failure otherwise.</returns>
-    /// <remarks>
-    /// Result.Success → Ensure(not empty) → Ensure(contains @).
-    /// </remarks>
     //==============================================================================================
     private static Result ValidateEmail(string email)
     {
@@ -95,9 +110,6 @@ public class CreateUserCommandHandler(IUserRepository repository, ILogger<Create
     /// </summary>
     /// <param name="password">Password to validate.</param>
     /// <returns>Result.Success if valid, Result.Failure otherwise.</returns>
-    /// <remarks>
-    /// Result.Success → Ensure(not empty) → Ensure(min 8 chars).
-    /// </remarks>
     //==============================================================================================
     private static Result ValidatePassword(string password)
     {
@@ -123,13 +135,13 @@ public class CreateUserCommandHandler(IUserRepository repository, ILogger<Create
     /// <summary>
     /// Creates new user and saves to repository.
     /// </summary>
-    /// <param name="request">CreateUser command.</param>
+    /// <param name="command">Command with user data.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>New user ID on success.</returns>
     //==============================================================================================
-    private async Task<Result<Guid>> CreateAndSaveUserAsync(CreateUserCommand request, CancellationToken cancellationToken)
+    private async Task<Result<Guid>> CreateAndSaveUserAsync(CreateUserWithValidationCommand command, CancellationToken cancellationToken)
     {
-        var user = new User(request.Email, request.Password);
+        var user = new User(command.Email, command.Password);
         await repository.AddAsync(user, cancellationToken);
         return Result<Guid>.Success(user.Id);
     }

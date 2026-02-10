@@ -69,6 +69,22 @@ public class InMemoryUserRepository : IUserRepository
 
     //==============================================================================================
     /// <summary>
+    /// Updates user in repository.
+    /// </summary>
+    /// <param name="user">User to update.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Completed task.</returns>
+    //==============================================================================================
+    public Task UpdateAsync(User user, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(user);
+
+        users[user.Id] = user;
+        return Task.CompletedTask;
+    }
+
+    //==============================================================================================
+    /// <summary>
     /// Retrieves all users.
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>

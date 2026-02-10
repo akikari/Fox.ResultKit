@@ -154,6 +154,59 @@ The pipeline behavior automatically catches exceptions and converts them to `Res
 
 ## 📚 Advanced Usage
 
+### Validation with ErrorsResult
+
+Collect multiple validation errors before processing (better UX than fail-fast):
+
+```csharp
+public async Task<Result<Guid>> Handle(CreateUserCommand request, CancellationToken ct)
+{
+    // Phase 1: Collect ALL validation errors
+    var validation = ErrorsResult.Collect(
+        ValidateEmail(request.Email),
+        ValidatePassword(request.Password),
+        ValidateAge(request.Age)
+    );
+
+    if (validation.IsFailure)
+    {
+        return validation.ToResult<Guid>(); // Returns all errors combined
+    }
+
+    // Phase 2: Business logic with fail-fast
+    if (await _repository.EmailExistsAsync(request.Email, ct))
+    {
+        return Result<Guid>.Failure(ResultError.Create("USER_EMAIL_EXISTS", "Email already exists"));
+    }
+
+    var user = new User(request.Email, request.Password);
+    await _repository.AddAsync(user, ct);
+    
+    return Result<Guid>.Success(user.Id);
+}
+
+private static Result ValidateEmail(string email)
+{
+    if (string.IsNullOrWhiteSpace(email))
+        return Result.Failure(ResultError.Create("VALIDATION_EMAIL_REQUIRED", "Email is required"));
+    
+    if (!email.Contains("@"))
+        return Result.Failure(ResultError.Create("VALIDATION_EMAIL_FORMAT", "Invalid email format"));
+    
+    return Result.Success();
+}
+```
+
+**Response on validation failure:**
+```json
+{
+  "errors": [
+    "VALIDATION_EMAIL_REQUIRED: Email is required",
+    "VALIDATION_PASSWORD_TOO_SHORT: Password must be at least 8 characters"
+  ]
+}
+```
+
 ### Custom Error Handling
 
 If you need custom exception handling, you can still catch specific exceptions:

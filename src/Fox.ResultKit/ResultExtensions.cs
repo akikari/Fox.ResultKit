@@ -44,6 +44,41 @@ public static class ResultExtensions
 
     //==============================================================================================
     /// <summary>
+    /// Chains another operation to the result.
+    /// </summary>
+    /// <param name="result">The source result.</param>
+    /// <param name="func">The chained operation function.</param>
+    /// <returns>The result of the chained operation or the original error.</returns>
+    /// <remarks>
+    /// Enables chaining of Result-returning operations in a Railway Oriented Programming style.
+    /// If the source result is failure, the chain stops and returns the error.
+    /// If the chained operation function throws an exception, the exception propagates and breaks
+    /// the chain. For exception-safe execution, use the <see cref="ResultTryExtensions.Try{T}"/>
+    /// method inside the function.
+    /// </remarks>
+    /// <example>
+    /// <code>
+    /// var result = ValidateEmail(email)
+    ///     .Bind(() => ValidatePassword(password))
+    ///     .Bind(() => ValidateAge(age));
+    /// </code>
+    /// </example>
+    //==============================================================================================
+    public static Result Bind(this Result result, Func<Result> func)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+        ArgumentNullException.ThrowIfNull(func);
+
+        if (result.IsFailure)
+        {
+            return result;
+        }
+
+        return func();
+    }
+
+    //==============================================================================================
+    /// <summary>
     /// Chains another operation to the result, which itself returns a Result.
     /// </summary>
     /// <typeparam name="T">The source result value type.</typeparam>

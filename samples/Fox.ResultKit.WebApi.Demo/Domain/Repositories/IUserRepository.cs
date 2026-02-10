@@ -44,6 +44,15 @@ public interface IUserRepository
 
     //==============================================================================================
     /// <summary>
+    /// Updates user in the repository.
+    /// </summary>
+    /// <param name="user">User to update.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    //==============================================================================================
+    Task UpdateAsync(User user, CancellationToken cancellationToken = default);
+
+    //==============================================================================================
+    /// <summary>
     /// Returns all users.
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>

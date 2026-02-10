@@ -113,6 +113,58 @@ public sealed class ResultExtensionsTests
         act.Should().Throw<ArgumentNullException>();
     }
 
+    [Fact]
+    public void Bind_non_generic_should_chain_success_operations()
+    {
+        var result = Result.Success();
+
+        var bound = result.Bind(() => Result.Success());
+
+        bound.IsSuccess.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Bind_non_generic_should_propagate_first_failure()
+    {
+        var result = Result.Failure("first error");
+
+        var bound = result.Bind(() => Result.Success());
+
+        bound.IsFailure.Should().BeTrue();
+        bound.Error.Should().Be("first error");
+    }
+
+    [Fact]
+    public void Bind_non_generic_should_propagate_second_failure()
+    {
+        var result = Result.Success();
+
+        var bound = result.Bind(() => Result.Failure("second error"));
+
+        bound.IsFailure.Should().BeTrue();
+        bound.Error.Should().Be("second error");
+    }
+
+    [Fact]
+    public void Bind_non_generic_should_throw_when_result_is_null()
+    {
+        Result result = null!;
+
+        var act = () => result.Bind(() => Result.Success());
+
+        act.Should().Throw<ArgumentNullException>();
+    }
+
+    [Fact]
+    public void Bind_non_generic_should_throw_when_func_is_null()
+    {
+        var result = Result.Success();
+
+        var act = () => result.Bind(null!);
+
+        act.Should().Throw<ArgumentNullException>();
+    }
+
     #endregion
 
     #region Ensure

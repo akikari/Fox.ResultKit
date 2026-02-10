@@ -63,7 +63,20 @@ result.Match(
 
 ### Railway Oriented Programming
 
+Chain operations with Railway Oriented Programming extensions:
+
 ```csharp
+// Fail-fast validation chain with Bind
+var validation = ValidateEmail(email)
+    .Bind(() => ValidatePassword(password))
+    .Bind(() => ValidateAge(age));
+
+if (validation.IsFailure)
+{
+    return BadRequest(validation.Error);
+}
+
+// Full pipeline with transformation and mapping
 var result = await GetUserById(userId)
     .ToResult($"User {userId} not found")
     .Ensure(user => user.IsActive, "User is not active")
@@ -100,6 +113,40 @@ return result.Match<IActionResult>(
         _ => BadRequest(error)
     }
 );
+```
+
+### Validation with ErrorsResult
+
+Collect **all validation errors** at once for better UX (supports mixed Result and Result&lt;T&gt; types):
+
+```csharp
+using Fox.ResultKit;
+
+// Validation phase - collect ALL errors (mixed types supported)
+var validation = ErrorsResult.Collect(
+    ValidateEmail(email),        // Result
+    ValidatePassword(password),  // Result
+    ParseAge(ageInput)          // Result<int>
+);
+
+if (validation.IsFailure)
+{
+    var errors = validation.Errors
+        .Select(ResultError.Parse)
+        .Select(e => new { e.Code, e.Message })
+        .ToList();
+    
+    return BadRequest(new { errors });
+    // Response: { "errors": [
+    //   { "code": "VALIDATION_EMAIL_REQUIRED", "message": "Email is required" },
+    //   { "code": "VALIDATION_PASSWORD_LENGTH", "message": "Password too short" }
+    // ]}
+}
+
+// Domain operations - fail-fast pipeline
+var result = await Result.Success()
+    .EnsureAsync(() => CheckEmailNotExistsAsync(email), "Email already exists")
+    .BindAsync(() => CreateUserAsync(email, password));
 ```
 
 ### Validation with Combine

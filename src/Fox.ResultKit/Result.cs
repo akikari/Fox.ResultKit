@@ -10,7 +10,7 @@ namespace Fox.ResultKit;
 /// Represents the result of an operation.
 /// </summary>
 //==================================================================================================
-public sealed class Result
+public sealed class Result : IResult
 {
     #region Constructors
 

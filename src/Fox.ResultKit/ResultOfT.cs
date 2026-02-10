@@ -11,7 +11,7 @@ namespace Fox.ResultKit;
 /// </summary>
 /// <typeparam name="T">Type of the success value.</typeparam>
 //==================================================================================================
-public sealed class Result<T>
+public sealed class Result<T> : IResult
 {
     #region Fields
 

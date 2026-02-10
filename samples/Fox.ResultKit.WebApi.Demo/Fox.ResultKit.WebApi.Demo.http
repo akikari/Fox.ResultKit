@@ -13,6 +13,31 @@ Content-Type: application/json
   "password": "SecurePassword123"
 }
 
+### Create User with Validation (Classic) - Shows ALL validation errors
+POST {{Fox.ResultKit.WebApi.Demo_HostAddress}}/api/classic/users/with-validation
+Content-Type: application/json
+
+{
+  "email": "john.doe@example.com",
+  "password": "SecurePassword123"
+}
+
+### Create User with Validation - Invalid Data (demonstrates ErrorsResult)
+POST {{Fox.ResultKit.WebApi.Demo_HostAddress}}/api/classic/users/with-validation
+Content-Type: application/json
+
+{
+  "email": "",
+  "password": "short"
+}
+# Expected Response (400 Bad Request):
+# {
+#   "errors": [
+#     { "code": "VALIDATION_EMAIL_REQUIRED", "message": "Email is required" },
+#     { "code": "VALIDATION_PASSWORD_LENGTH", "message": "Password must be at least 8 characters" }
+#   ]
+# }
+
 ### Get User by ID (Classic)
 # @name getUserClassic
 GET {{Fox.ResultKit.WebApi.Demo_HostAddress}}/api/classic/users/{{userId}}
@@ -24,6 +49,24 @@ Content-Type: application/json
 
 {
   "isActive": false
+}
+
+### Get Inactive User - Demonstrates Ensure validation (Classic)
+# After setting isActive=false, this should return 403 Forbidden
+GET {{Fox.ResultKit.WebApi.Demo_HostAddress}}/api/classic/users/{{userId}}
+Accept: application/json
+# Expected Response (403 Forbidden):
+# {
+#   "error": "User is not active",
+#   "code": "USER_INACTIVE"
+# }
+
+### Reactivate User (Classic)
+PATCH {{Fox.ResultKit.WebApi.Demo_HostAddress}}/api/classic/users/{{userId}}/status
+Content-Type: application/json
+
+{
+  "isActive": true
 }
 
 ### Get User Summary (Classic)
@@ -43,6 +86,31 @@ Content-Type: application/json
   "email": "jane.smith@example.com",
   "password": "AnotherSecurePass456"
 }
+
+### Create User with Validation (CQRS) - Shows ALL validation errors
+POST {{Fox.ResultKit.WebApi.Demo_HostAddress}}/api/cqrs/users/with-validation
+Content-Type: application/json
+
+{
+  "email": "jane.smith@example.com",
+  "password": "AnotherSecurePass456"
+}
+
+### Create User with Validation - Invalid Data (CQRS)
+POST {{Fox.ResultKit.WebApi.Demo_HostAddress}}/api/cqrs/users/with-validation
+Content-Type: application/json
+
+{
+  "email": "invalid-email",
+  "password": ""
+}
+# Expected Response (400 Bad Request):
+# {
+#   "errors": [
+#     { "code": "VALIDATION_EMAIL_FORMAT", "message": "Invalid email format" },
+#     { "code": "VALIDATION_PASSWORD_REQUIRED", "message": "Password is required" }
+#   ]
+# }
 
 ### Get User by ID (CQRS)
 @userId = 00000000-0000-0000-0000-000000000000

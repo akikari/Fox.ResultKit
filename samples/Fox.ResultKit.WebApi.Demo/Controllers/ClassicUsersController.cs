@@ -3,6 +3,7 @@
 // ASP.NET Core Web API integration with Railway Oriented Programming patterns.
 //==================================================================================================
 using Fox.ResultKit.WebApi.Demo.Domain.Models;
+using Fox.ResultKit.WebApi.Demo.Domain.Repositories;
 using Fox.ResultKit.WebApi.Demo.Domain.Services;
 using Fox.ResultKit.WebApi.Demo.DTOs;
 using Microsoft.AspNetCore.Mvc;
@@ -14,11 +15,12 @@ namespace Fox.ResultKit.WebApi.Demo.Controllers;
 /// Classic service-based controller demonstrating ResultKit usage.
 /// </summary>
 /// <param name="userService">User service handling user operations.</param>
+/// <param name="repository">User repository for direct data access in validation demo.</param>
 //==================================================================================================
 [ApiController]
 [Route("api/classic/users")]
 [Tags("Classic Service Layer")]
-public class ClassicUsersController(UserService userService) : ControllerBase
+public class ClassicUsersController(UserService userService, IUserRepository repository) : ControllerBase
 {
     //==============================================================================================
     /// <summary>
@@ -53,6 +55,56 @@ public class ClassicUsersController(UserService userService) : ControllerBase
                 };
             }
         );
+    }
+
+    //==============================================================================================
+    /// <summary>
+    /// Creates a new user demonstrating ErrorsResult for collecting all validation errors.
+    /// </summary>
+    /// <param name="request">User creation data.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>201 Created with user ID on success; 400 BadRequest with all validation errors.</returns>
+    /// <remarks>
+    /// Demonstrates separation of concerns:
+    /// 1. Validation phase: ErrorsResult.Collect (show ALL errors at once)
+    /// 2. Domain pipeline: Result fail-fast (business logic errors)
+    /// Better UX - user sees all validation problems immediately.
+    /// </remarks>
+    //==============================================================================================
+    [HttpPost("with-validation")]
+    [ProducesResponseType(typeof(object), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> CreateUserWithValidation([FromBody] CreateUserRequest request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        // Phase 1: Input validation - collect ALL errors
+        var validation = userService.ValidateUserInputWithErrors(request.Email, request.Password);
+
+        if (validation.IsFailure)
+        {
+            var errors = validation.Errors
+                .Select(ResultError.Parse)
+                .Select(e => new { code = e.Code, message = e.Message })
+                .ToList();
+
+            return BadRequest(new { errors });
+        }
+
+        // Phase 2: Domain operations - fail-fast pipeline
+        var emailExistsCheck = await CheckEmailNotExistsAsync(request.Email, cancellationToken);
+        if (!emailExistsCheck)
+        {
+            return Conflict(new
+            {
+                error = "Email already exists",
+                code = "USER_EMAIL_EXISTS"
+            });
+        }
+
+        var userId = await CreateAndSaveUserAsync(request.Email, request.Password, cancellationToken);
+        return CreatedAtAction(nameof(GetUser), new { id = userId }, new { userId });
     }
 
     //==============================================================================================
@@ -133,4 +185,21 @@ public class ClassicUsersController(UserService userService) : ControllerBase
         var summary = await userService.GetUserSummaryAsync(id, cancellationToken);
         return Ok(new { summary });
     }
+
+    #region Private helper methods for CreateUserWithValidation
+
+    private async Task<bool> CheckEmailNotExistsAsync(string email, CancellationToken cancellationToken)
+    {
+        var existingUser = await repository.FindByEmailAsync(email, cancellationToken);
+        return existingUser == null;
+    }
+
+    private async Task<Guid> CreateAndSaveUserAsync(string email, string password, CancellationToken cancellationToken)
+    {
+        var user = new User(email, password);
+        await repository.AddAsync(user, cancellationToken);
+        return user.Id;
+    }
+
+    #endregion
 }
