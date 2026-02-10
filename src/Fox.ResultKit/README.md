@@ -12,6 +12,7 @@ Inspired by F# Result type and Scott Wlaschin's Railway Oriented Programming pat
 
 - **Type-safe Result Handling** - Explicit success/failure modeling with `Result` and `Result<T>`
 - **Railway Oriented Programming** - Functional composition with `Map`, `Bind`, `Ensure`, `Tap`, `Match`
+- **Error Code Convention** - `ResultError` utility for structured error codes
 - **Exception Safety** - `Try` and `TryAsync` for wrapping unsafe operations
 - **Result Composition** - `Combine` multiple validation results
 - **Zero Dependencies** - No third-party packages, minimal footprint
@@ -75,6 +76,32 @@ return result.Match<IActionResult>(
 );
 ```
 
+### Error Code Convention
+
+```csharp
+using Fox.ResultKit;
+
+// Create structured errors with code and message
+var error = ResultError.Create("USER_NOT_FOUND", "User does not exist");
+Result failure = Result.Failure(error);
+// Error: "USER_NOT_FOUND: User does not exist"
+
+// Parse error codes from results
+var (code, message) = ResultError.Parse(failure.Error!);
+// code = "USER_NOT_FOUND", message = "User does not exist"
+
+// HTTP status mapping example
+return result.Match<IActionResult>(
+    onSuccess: dto => Ok(dto),
+    onFailure: error => ResultError.Parse(error) switch
+    {
+        ("USER_NOT_FOUND", var msg) => NotFound(msg),
+        ("USER_INACTIVE", var msg) => StatusCode(403, msg),
+        _ => BadRequest(error)
+    }
+);
+```
+
 ### Validation with Combine
 
 ```csharp
@@ -118,11 +145,11 @@ var asyncResult = await ResultTryExtensions.TryAsync(
 - Explicit error handling in method signatures
 - Composing operations functionally
 - Eliminating null checks
+- Structured error codes with `ResultError` convention
 
 ### ❌ Don't use for:
 - Truly exceptional situations (OOM, hardware failures)
 - Performance-critical hot paths
-- External APIs needing typed error codes
 
 ## 📦 Related Packages
 

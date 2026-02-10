@@ -1,4 +1,4 @@
-﻿# ResultKit.MediatR
+# ResultKit.MediatR
 
 MediatR integration for ResultKit - Railway Oriented Programming pipeline behaviors for CQRS commands and queries.
 
@@ -66,12 +66,12 @@ public class CreateUserCommandHandler : IRequestHandler<CreateUserCommand, Resul
 
     public async Task<Result<Guid>> Handle(CreateUserCommand request, CancellationToken cancellationToken)
     {
-        // Validation
+        // Validation with error codes
         if (string.IsNullOrWhiteSpace(request.Email))
-            return Result<Guid>.Failure("Email is required");
+            return Result<Guid>.Failure(ResultError.Create("VALIDATION_EMAIL_REQUIRED", "Email is required"));
 
         if (!request.Email.Contains("@"))
-            return Result<Guid>.Failure("Invalid email format");
+            return Result<Guid>.Failure(ResultError.Create("VALIDATION_EMAIL_FORMAT", "Invalid email format"));
 
         // Business logic (exceptions auto-handled by pipeline)
         var user = new User(request.Email, request.Password);
@@ -102,10 +102,15 @@ public class UsersController : ControllerBase
         var command = new CreateUserCommand(request.Email, request.Password);
         var result = await _mediator.Send(command);
 
-        if (result.IsSuccess)
-            return Ok(new { userId = result.Value });
-
-        return BadRequest(new { error = result.Error });
+        return result.Match<IActionResult>(
+            onSuccess: userId => Ok(new { userId }),
+            onFailure: error => ResultError.Parse(error) switch
+            {
+                ("VALIDATION_EMAIL_REQUIRED", var msg) => BadRequest(new { error = msg }),
+                ("VALIDATION_EMAIL_FORMAT", var msg) => BadRequest(new { error = msg }),
+                _ => BadRequest(new { error })
+            }
+        );
     }
 }
 ```
@@ -141,7 +146,7 @@ public async Task<Result<User>> Handle(GetUserQuery request, CancellationToken c
     
     return user != null 
         ? Result<User>.Success(user)
-        : Result<User>.Failure("User not found");
+        : Result<User>.Failure(ResultError.Create("USER_NOT_FOUND", "User not found"));
 }
 ```
 
