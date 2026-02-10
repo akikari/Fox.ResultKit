@@ -7,9 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-<!-- No unreleased changes yet -->
+_No unreleased changes yet._
 
-## [1.2.0] - 2025-01-23
+## [1.2.0] - 2026-02-10
 
 ### Added
 
@@ -42,7 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Version bumped to 1.2.0 for both Fox.ResultKit and Fox.ResultKit.MediatR packages
 
-## [1.1.0] - 2025-01-22
+## [1.1.0] - 2026-02-09
 
 ### Added
 
