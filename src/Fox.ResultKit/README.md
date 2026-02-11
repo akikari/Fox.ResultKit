@@ -126,7 +126,7 @@ using Fox.ResultKit;
 var validation = ErrorsResult.Collect(
     ValidateEmail(email),        // Result
     ValidatePassword(password),  // Result
-    ParseAge(ageInput)          // Result<int>
+    ParseAge(ageInput)           // Result<int>
 );
 
 if (validation.IsFailure)
