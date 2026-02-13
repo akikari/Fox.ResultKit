@@ -53,7 +53,7 @@ Fox.ResultKit provides a clean and functional approach to handle operation resul
 | **API Complexity** | Simple | Feature-rich | Moderate | Complex |
 | **Functional Extensions** | ✅ Map, Bind, Match | ✅ Full | ✅ Full | ✅ Full + Monads |
 | **Multiple Errors** | ✅ ErrorsResult | ✅ List | ✅ List | ✅ NEL |
-| **Typed Errors** | ❌ String only | ✅ Custom | ✅ Custom | ✅ Custom |
+| **Typed Errors** | ❌ String only (convention-based) | ✅ Custom | ✅ Custom | ✅ Custom |
 | **Async Support** | ✅ Full | ✅ Full | ✅ Full | ✅ Full |
 | **Best For** | Clean domain logic | Rich validation | DDD projects | FP enthusiasts |
 

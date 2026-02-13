@@ -14,13 +14,13 @@ _No unreleased changes yet._
 ### Added
 
 #### Fox.ResultKit (Core Library)
-- `IResult` interface - Common contract for Result and Result<T> enabling polymorphic operations
+- `IResult` interface - Common contract for `Result` and `Result<T>` enabling polymorphic operations
 - `ErrorsResult` record struct for collecting multiple validation errors
-- `ErrorsResult.Collect(params IResult[])` - Aggregates errors from mixed Result and Result<T> types
+- `ErrorsResult.Collect(params IResult[])` - Aggregates errors from mixed `Result` and `Result<T>` types
 - `ErrorsResult.ToResult()` - Converts ErrorsResult to single Result with combined error message
 - `Bind(this Result, Func<Result>)` extension - Chains non-generic Result operations for fail-fast validation chains
 - Validation-first pattern: Collect all validation errors (better UX) before domain pipeline (fail-fast)
-- Support for mixed Result and Result<T> types in error collection scenarios
+- Support for mixed `Result` and `Result<T>` types in error collection scenarios
 
 #### Fox.ResultKit.MediatR
 - Updated dependency to Fox.ResultKit 1.2.0
@@ -50,7 +50,7 @@ _No unreleased changes yet._
 - `ResultError` utility class for convention-based error code parsing and formatting
 - `ResultError.Create(code, message)` - Creates formatted error string with code prefix
 - `ResultError.Parse(error)` - Extracts error code and message from formatted string
-- Error code convention: `"[ERROR_CODE] Message"` format for structured error handling
+- Error code convention: `"[ERROR_CODE]: Message"` format for structured error handling
 
 #### Documentation
 - Added ResultError convention documentation to README
