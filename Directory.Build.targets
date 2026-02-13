@@ -1,10 +1,8 @@
-﻿<Project>
+<Project>
     <!--
-    ==================================================================================================
-    Directory.Build.targets - Központi build célok és testreszabások
-    
-    Ez a fájl a build folyamat végén fut le, lehetővé teszi a build testreszabását.
-    ==================================================================================================
+    Directory.Build.targets - Centralized build targets and customizations
+
+    This file runs at the end of the build process, enabling build customization.
     -->
 
     <!-- NuGet package metadata validation -->
