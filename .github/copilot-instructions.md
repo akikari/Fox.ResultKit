@@ -113,20 +113,38 @@ public sealed class Product
 
 ### XML Doc Decorators
 - **Enabled**: Yes
-- **Width**: 98 characters (full line)
+- **Width**: 98 characters (total line width including indentation)
 - **Character**: `=`
 - **Prefix**: `//`
 - **No Space After Prefix**: Decorators use `//======` format (no space)
-- **Dynamic Indent**: Yes
+- **Dynamic Indent**: Yes (adjust decorator width based on indentation level)
+- **File-Scoped Namespaces Rule**: When using `namespace MyNamespace;` (file-scoped):
+  - **File Headers**: 98 characters (no indentation)
+  - **Class/Interface/Enum Decorators**: 98 characters (no indentation, same level as namespace)
+  - **Method/Property/Member Decorators**: 94 characters + 4-space indentation = 98 total width
 
-Example:
+Example (file-scoped namespace):
 ```csharp
-//==============================================================================================
+//==================================================================================================
+// File header: 98 characters (no indentation)
+//==================================================================================================
+
+namespace Fox.ResultKit;
+
+//==================================================================================================
 /// <summary>
-/// Gets whether the operation was successful.
+/// Class decorator: 98 characters (no indentation, same level as namespace)
 /// </summary>
-//==============================================================================================
-public bool IsSuccess { get; }
+//==================================================================================================
+public sealed class Result
+{
+    //==============================================================================================
+    /// <summary>
+    /// Method decorator: 94 characters + 4-space indent = 98 total
+    /// </summary>
+    //==============================================================================================
+    public static Result Success() => new(true, null);
+}
 ```
 
 ### File Header
