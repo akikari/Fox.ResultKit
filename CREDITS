@@ -1,0 +1,93 @@
+Fox.ResultKit - Credits and Acknowledgments
+============================================
+
+Original Author and Project Creator
+------------------------------------
+Károly Akácz
+https://github.com/akikari
+
+Project URL: https://github.com/akikari/Fox.ResultKit
+First Release: 2026-02-07 (v1.0.0)
+
+
+Project Vision and Design Philosophy
+-------------------------------------
+Fox.ResultKit was created to provide a lightweight, type-safe alternative for
+result handling in .NET applications without the complexity and dependencies
+of larger frameworks.
+
+The project embodies several key principles:
+
+1. Zero Dependencies Philosophy
+   The core Fox.ResultKit library has no external dependencies, ensuring minimal
+   footprint and maximum compatibility across .NET 8, 9, and 10.
+
+2. Railway Oriented Programming
+   Inspired by Scott Wlaschin's Railway Oriented Programming pattern and F#'s
+   Result type, the library brings functional composition to C# through a fluent
+   API with Map, Bind, Ensure, Tap, and Match extensions.
+
+3. Explicit Over Implicit
+   Method signatures clearly reveal possible failures through Result<T> return
+   types, replacing hidden exceptions and nullable references with explicit
+   success/failure modeling.
+
+4. Async-First Design
+   All functional extensions have async variants (MapAsync, BindAsync, etc.),
+   recognizing that modern .NET applications are inherently asynchronous.
+
+5. Developer Experience
+   Complete XML documentation, IntelliSense support, and nullable reference
+   type annotations ensure a smooth development experience.
+
+
+Architectural Highlights
+-------------------------
+- Result<T> and Result: Core types for success/failure modeling
+- ErrorsResult: Aggregates multiple validation errors for better user experience
+- IResult: Common interface enabling polymorphic operations on mixed Result types
+- Fluent API: Chainable extensions for functional composition
+- MediatR Integration: Seamless CQRS pattern support via Fox.ResultKit.MediatR
+
+
+Design Decisions
+-----------------
+The project was deliberately designed to:
+
+- Avoid the complexity of large functional programming frameworks (e.g., LanguageExt)
+- Provide a simpler, lighter alternative to FluentResults for domain logic
+- Support modern .NET features (nullable references, records, pattern matching)
+- Enable both fail-fast validation chains (Bind) and error collection (ErrorsResult)
+- Maintain backward compatibility across .NET Long-Term Support versions
+
+
+Inspirations and Influences
+----------------------------
+This project draws inspiration from:
+
+- F# Result type and Option type
+- Scott Wlaschin's Railway Oriented Programming concepts
+- Functional programming principles applied to C# idioms
+- The broader .NET community's exploration of functional patterns
+
+
+Acknowledgments
+---------------
+Special thanks to the .NET community for fostering discussions around functional
+programming patterns, error handling best practices, and the continuous evolution
+of C# as a multi-paradigm language.
+
+
+Contributing
+------------
+This project was created and is maintained by Károly Akácz. Community contributions
+are welcome through the GitHub repository. All contributors agree to license their
+contributions under the same MIT License that governs this project.
+
+
+License
+-------
+Fox.ResultKit is released under the MIT License.
+See LICENSE.txt for the complete license text.
+
+Copyright (c) 2026 Károly Akácz

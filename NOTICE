@@ -1,0 +1,21 @@
+Fox.ResultKit - Copyright Notice
+=================================
+
+Copyright (c) 2026 Károly Akácz
+
+This software is licensed under the MIT License.
+See LICENSE.txt for the full license text.
+
+Original Author: Károly Akácz
+Project URL: https://github.com/akikari/Fox.ResultKit
+
+This library provides lightweight Result types and Railway Oriented Programming
+patterns for .NET applications, eliminating exception-based error handling in
+business logic.
+
+Key Components:
+- Fox.ResultKit: Core library with Result<T>, ErrorsResult, and fluent API
+- Fox.ResultKit.MediatR: MediatR integration for CQRS-style architectures
+
+All contributions, modifications, and derivative works must retain this notice
+and the MIT License terms.
