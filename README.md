@@ -5,6 +5,7 @@
 [![NuGet](https://img.shields.io/nuget/v/Fox.ResultKit.svg)](https://www.nuget.org/packages/Fox.ResultKit/)
 [![NuGet Downloads](https://img.shields.io/nuget/dt/Fox.ResultKit?label=downloads&color=darkgreen)](https://www.nuget.org/packages/Fox.ResultKit/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-orange.svg)](https://opensource.org/licenses/MIT)
+[![codecov](https://img.shields.io/codecov/c/github/akikari/Fox.ResultKit?color=darkgreen&label=codecov)](https://codecov.io/gh/akikari/Fox.ResultKit)
 
 A lightweight, type-safe result handling library for .NET applications that eliminates the need for exception-based error handling in business logic.
 
