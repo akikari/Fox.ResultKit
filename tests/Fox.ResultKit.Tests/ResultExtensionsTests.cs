@@ -999,6 +999,32 @@ public sealed class ResultExtensionsTests
 
     #endregion
 
+    #region ToResult (nullable T? → Result<T>)
+
+    [Fact]
+    public void ToResult_from_nullable_should_create_success_when_value_is_not_null()
+    {
+        string? value = "test value";
+
+        var result = value.ToResult("Value was null");
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().Be("test value");
+    }
+
+    [Fact]
+    public void ToResult_from_nullable_should_create_failure_when_value_is_null()
+    {
+        string? value = null;
+
+        var result = value.ToResult("Value was null");
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Value was null");
+    }
+
+    #endregion
+
     #region Ensure (Result - stateless)
 
     [Fact]

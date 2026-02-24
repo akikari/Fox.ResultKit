@@ -76,4 +76,22 @@ public sealed class ResultOfTTests
 
         act.Should().Throw<ArgumentException>();
     }
+
+    [Fact]
+    public void ThrowIfFailure_should_throw_on_failure()
+    {
+        var result = Result<int>.Failure("error message");
+
+        result.Invoking(r => r.ThrowIfFailure())
+            .Should().Throw<InvalidOperationException>()
+            .WithMessage("error message");
+    }
+
+    [Fact]
+    public void ThrowIfFailure_should_not_throw_on_success()
+    {
+        var result = Result<int>.Success(42);
+
+        result.Invoking(r => r.ThrowIfFailure()).Should().NotThrow();
+    }
 }
