@@ -685,6 +685,16 @@ The project enforces a **strict build policy** to ensure code quality:
 
 All pull requests must pass this requirement.
 
+### Code Quality Standards
+
+Fox.ValidationKit follows strict coding standards:
+
+- **Comprehensive unit tests required** (xUnit + FluentAssertions)
+- **Maximum test coverage required** - Aim for 100% line and branch coverage. Tests may only be omitted if they would introduce artificial complexity (e.g., testing unreachable code paths, framework internals, or compiler-generated code). Use `[ExcludeFromCodeCoverage]` sparingly and only for justified cases.
+- **XML documentation for all public APIs** - Clear, concise documentation with examples
+- **Follow Microsoft coding conventions** - See `.github/copilot-instructions.md` for project-specific style
+- **Zero warnings, zero errors build policy** - Strict enforcement
+
 ### Code Style
 
 - Follow the existing code style (see `.github/copilot-instructions.md`)
