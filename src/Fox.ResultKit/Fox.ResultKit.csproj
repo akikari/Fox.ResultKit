@@ -2,7 +2,7 @@
 
     <PropertyGroup Label="Framework and Language">
         <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
-        <Version>1.2.0</Version>
+        <Version>1.3.0</Version>
         <IsPackable>true</IsPackable>
         <AssemblyName>Fox.ResultKit</AssemblyName>
         <RootNamespace>Fox.ResultKit</RootNamespace>
@@ -15,7 +15,7 @@
         <PackageTags>fox-resultkit;result;railway-oriented-programming;functional;error-handling;either;option;result-pattern</PackageTags>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
-        <PackageReleaseNotes>Version 1.2.0: Added ErrorsResult for collecting multiple validation errors. Better UX by showing all validation problems at once. See CHANGELOG.md for details.</PackageReleaseNotes>
+        <PackageReleaseNotes>Version 1.3.0: Added Match and MatchAsync extensions for non-generic Result. Pattern matching now supported for all Result types (DELETE endpoints, validation chains). See CHANGELOG.md for details.</PackageReleaseNotes>
     </PropertyGroup>
 
     <PropertyGroup Label="Package Icon" Condition="Exists('..\..\assets\icon.png')">

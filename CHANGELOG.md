@@ -9,6 +9,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 _No unreleased changes yet._
 
+## [1.3.0] - 2026-03-01
+
+### Added
+
+#### Fox.ResultKit (Core Library)
+- `Match<U>(this Result, Func<U>, Func<string, U>)` extension - Pattern matching for non-generic Result
+- `MatchAsync<U>(this Task<Result>, Func<Task<U>>, Func<string, Task<U>>)` extension - Async pattern matching for non-generic Result
+- DELETE endpoint support - Match extensions enable functional pattern matching for operations without return values
+- API consistency - All Result types now support Match pattern (Result and Result<T>)
+
+#### Fox.ResultKit.MediatR
+- Updated dependency to Fox.ResultKit 1.3.0
+- Version bumped to 1.3.0 for package consistency
+
+#### Tests
+- Added 9 comprehensive tests for Match and MatchAsync extensions on Result
+- Total test count: 198 (182 ResultKit + 16 MediatR)
+- 100% code coverage maintained (line and branch)
+
+#### Documentation
+- Updated README with Match/MatchAsync entries for Result in Pattern Matching table
+- Added DELETE endpoint example demonstrating Match usage for non-generic Result
+- Enhanced API Reference section with complete Match extension documentation
+
+### Changed
+- Version bumped to 1.3.0 for Fox.ResultKit package
+
 ## [1.2.0] - 2026-02-10
 
 ### Added

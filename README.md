@@ -339,6 +339,41 @@ public async Task<IActionResult> CreateUser([FromBody] CreateUserRequest request
 }
 ```
 
+**Match with non-generic Result (DELETE endpoint example):**
+
+```csharp
+// Service method returning Result (no value for DELETE)
+public async Task<Result> DeleteUserAsync(Guid userId, CancellationToken cancellationToken)
+{
+    var user = await repository.GetByIdAsync(userId, cancellationToken);
+
+    if (user == null)
+    {
+        return Result.Failure("USER_NOT_FOUND: User not found");
+    }
+
+    await repository.DeleteAsync(user, cancellationToken);
+    return Result.Success();
+}
+
+// Controller using Match for Result (no value)
+[HttpDelete("{id}")]
+[ProducesResponseType(StatusCodes.Status204NoContent)]
+[ProducesResponseType(typeof(object), StatusCodes.Status404NotFound)]
+public async Task<IActionResult> DeleteUser(Guid id, CancellationToken cancellationToken)
+{
+    return await userService.DeleteUserAsync(id, cancellationToken)
+        .MatchAsync<IActionResult>(
+            onSuccess: () => Task.FromResult(NoContent()),
+            onFailure: error =>
+            {
+                var (code, message) = ResultError.Parse(error);
+                return Task.FromResult<IActionResult>(NotFound(new { error = message, code }));
+            }
+        );
+}
+```
+
 ### Error Code Convention (Advanced Pattern)
 
 Fox.ResultKit uses simple string-based errors for lightweight design. However, you can embed structured error codes using the **convention-based `ResultError` utility**:
@@ -606,7 +641,9 @@ public async Task<IActionResult> CreateUser([FromBody] CreateUserRequest request
 | Method | Description |
 |--------|-------------|
 | `Match<T, U>(this Result<T>, Func<T, U>, Func<string, U>)` | Handles both success and failure cases |
-| `MatchAsync<T, U>(this Task<Result<T>>, Func<T, Task<U>>, Func<string, Task<U>>)` | Async pattern matching |
+| `Match<U>(this Result, Func<U>, Func<string, U>)` | Pattern matching for non-generic Result |
+| `MatchAsync<T, U>(this Task<Result<T>>, Func<T, Task<U>>, Func<string, Task<U>>)` | Async pattern matching for Result<T> |
+| `MatchAsync<U>(this Task<Result>, Func<Task<U>>, Func<string, Task<U>>)` | Async pattern matching for Result |
 
 ### Conversion Extensions
 

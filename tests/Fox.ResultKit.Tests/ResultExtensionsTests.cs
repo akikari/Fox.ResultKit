@@ -380,6 +380,66 @@ public sealed class ResultExtensionsTests
 
     #endregion
 
+    #region Match (Result)
+
+    [Fact]
+    public void Match_should_call_onSuccess_when_result_is_success()
+    {
+        var result = Result.Success();
+
+        var matched = result.Match(
+            onSuccess: () => "Success",
+            onFailure: e => $"Error: {e}"
+        );
+
+        matched.Should().Be("Success");
+    }
+
+    [Fact]
+    public void Match_should_call_onFailure_when_result_is_failure()
+    {
+        var result = Result.Failure("test error");
+
+        var matched = result.Match(
+            onSuccess: () => "Success",
+            onFailure: e => $"Error: {e}"
+        );
+
+        matched.Should().Be("Error: test error");
+    }
+
+    [Fact]
+    public void Match_result_should_throw_when_result_is_null()
+    {
+        Result result = null!;
+
+        var act = () => result.Match(() => "ok", e => e);
+
+        act.Should().Throw<ArgumentNullException>();
+    }
+
+    [Fact]
+    public void Match_result_should_throw_when_onSuccess_is_null()
+    {
+        var result = Result.Success();
+
+        var act = () => result.Match<string>(null!, e => e);
+
+        act.Should().Throw<ArgumentNullException>();
+    }
+
+    [Fact]
+    public void Match_result_should_throw_when_onFailure_is_null()
+    {
+        var result = Result.Success();
+
+        var act = () => result.Match(() => "ok", null!);
+
+        act.Should().Throw<ArgumentNullException>();
+    }
+
+    #endregion
+
     #region MapAsync
 
     [Fact]
@@ -649,6 +709,52 @@ public sealed class ResultExtensionsTests
         var resultTask = Task.FromResult(Result<int>.Success(10));
 
         var act = async () => await resultTask.MatchAsync<int, string>(x => Task.FromResult(x.ToString()), null!);
+
+        await act.Should().ThrowAsync<ArgumentNullException>();
+    }
+
+    [Fact]
+    public async Task MatchAsync_should_call_onSuccess_when_result_is_success()
+    {
+        var resultTask = Task.FromResult(Result.Success());
+
+        var matched = await resultTask.MatchAsync(
+            onSuccess: () => Task.FromResult("Success"),
+            onFailure: e => Task.FromResult($"Error: {e}")
+        );
+
+        matched.Should().Be("Success");
+    }
+
+    [Fact]
+    public async Task MatchAsync_should_call_onFailure_when_result_is_failure()
+    {
+        var resultTask = Task.FromResult(Result.Failure("test error"));
+
+        var matched = await resultTask.MatchAsync(
+            onSuccess: () => Task.FromResult("Success"),
+            onFailure: e => Task.FromResult($"Error: {e}")
+        );
+
+        matched.Should().Be("Error: test error");
+    }
+
+    [Fact]
+    public async Task MatchAsync_result_should_throw_when_onSuccess_is_null()
+    {
+        var resultTask = Task.FromResult(Result.Success());
+
+        var act = async () => await resultTask.MatchAsync<string>(null!, e => Task.FromResult(e));
+
+        await act.Should().ThrowAsync<ArgumentNullException>();
+    }
+
+    [Fact]
+    public async Task MatchAsync_result_should_throw_when_onFailure_is_null()
+    {
+        var resultTask = Task.FromResult(Result.Success());
+
+        var act = async () => await resultTask.MatchAsync(() => Task.FromResult("ok"), null!);
 
         await act.Should().ThrowAsync<ArgumentNullException>();
     }

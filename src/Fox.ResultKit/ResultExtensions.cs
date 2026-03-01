@@ -217,6 +217,33 @@ public static class ResultExtensions
 
     //==============================================================================================
     /// <summary>
+    /// Performs a pattern matching operation on the result.
+    /// </summary>
+    /// <typeparam name="U">The return value type.</typeparam>
+    /// <param name="result">The result.</param>
+    /// <param name="onSuccess">Action to execute on successful result.</param>
+    /// <param name="onFailure">Function to execute on failed result.</param>
+    /// <returns>The result of the matching branch.</returns>
+    /// <remarks>
+    /// If either matching function throws an exception, the exception propagates.
+    /// </remarks>
+    //==============================================================================================
+    public static U Match<U>(this Result result, Func<U> onSuccess, Func<string, U> onFailure)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+        ArgumentNullException.ThrowIfNull(onSuccess);
+        ArgumentNullException.ThrowIfNull(onFailure);
+
+        if (result.IsSuccess)
+        {
+            return onSuccess();
+        }
+
+        return onFailure(result.Error!);
+    }
+
+    //==============================================================================================
+    /// <summary>
     /// Verifies that a condition is met.
     /// </summary>
     /// <param name="result">The result.</param>
@@ -625,6 +652,34 @@ public static class ResultExtensions
         if (result.IsSuccess)
         {
             return await onSuccess(result.Value!);
+        }
+
+        return await onFailure(result.Error!);
+    }
+
+    //==============================================================================================
+    /// <summary>
+    /// Asynchronously performs a pattern matching operation on the result.
+    /// </summary>
+    /// <typeparam name="U">The return value type.</typeparam>
+    /// <param name="resultTask">The task containing the result.</param>
+    /// <param name="onSuccess">Asynchronous function to execute on successful result.</param>
+    /// <param name="onFailure">Asynchronous function to execute on failed result.</param>
+    /// <returns>The result of the matching branch.</returns>
+    /// <remarks>
+    /// If either asynchronous matching function throws an exception, the exception propagates.
+    /// </remarks>
+    //==============================================================================================
+    public static async Task<U> MatchAsync<U>(this Task<Result> resultTask, Func<Task<U>> onSuccess, Func<string, Task<U>> onFailure)
+    {
+        ArgumentNullException.ThrowIfNull(onSuccess);
+        ArgumentNullException.ThrowIfNull(onFailure);
+
+        Result result = await resultTask;
+
+        if (result.IsSuccess)
+        {
+            return await onSuccess();
         }
 
         return await onFailure(result.Error!);
