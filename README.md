@@ -9,6 +9,25 @@
 
 A lightweight, type-safe result handling library for .NET applications that eliminates the need for exception-based error handling in business logic.
 
+## 📑 Table of Contents
+
+- [Overview](#overview)
+- [Why Fox.ResultKit?](#why-foxresultkit)
+- [When to Use](#when-to-use)
+- [Comparison with Alternatives](#comparison-with-alternatives)
+- [Features](#features)
+- [Installation](#installation)
+- [Usage](#usage)
+- [API Reference](#api-reference)
+- [Design Principles](#design-principles)
+- [Requirements](#requirements)
+- [Real-World Example](#real-world-example)
+- [Contributing](#contributing)
+- [License](#license)
+- [Author](#author)
+- [Project Status](#project-status)
+- [Support](#support)
+
 ## 📋 Overview
 
 Fox.ResultKit provides a clean and functional approach to handle operation results in .NET applications. Instead of throwing exceptions for expected failures, it uses the `Result` and `Result<T>` types to explicitly model success and failure states.
@@ -694,6 +713,10 @@ See [Error Code Convention](#error-code-convention-advanced-pattern) section for
 - .NET 8.0 or higher
 - C# 11 or higher (for file-scoped namespaces and modern features)
 - Nullable reference types enabled (recommended)
+
+## 🎯 Real-World Example
+
+See this package in action within a complete production-grade application: **[Fox.TaskFlow](https://github.com/akikari/Fox.TaskFlow)** - A comprehensive demonstration showcasing real-world integration of seven Fox.*Kit packages in a task management system built with Clean Architecture, SOLID principles, and modern .NET 10 practices.
 
 ## 🤝 Contributing
 
