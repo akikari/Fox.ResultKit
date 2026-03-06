@@ -16,18 +16,37 @@ public static class ResultExtensions
 
     //==============================================================================================
     /// <summary>
-    /// Maps the result value to a new type using the specified function.
+    /// Transforms the result value to a new type using a function that returns a plain value.
     /// </summary>
     /// <typeparam name="T">The source result value type.</typeparam>
     /// <typeparam name="U">The target result value type.</typeparam>
     /// <param name="result">The source result.</param>
-    /// <param name="func">The mapping function.</param>
-    /// <returns>The transformed value on success, or the original error on failure.</returns>
+    /// <param name="func">The transformation function that returns a plain value (not a Result).</param>
+    /// <returns>The transformed value wrapped in Result on success, or the original error on failure.</returns>
     /// <remarks>
-    /// If the mapping function throws an exception, the exception propagates and breaks the chain.
+    /// <para>
+    /// Use Map when you want to transform the success value using a simple function that does NOT
+    /// return a Result. The Result wrapper is automatically added.
+    /// </para>
+    /// <para>
+    /// Common use cases: DTO mapping, calculations, string formatting, any pure transformation.
+    /// </para>
+    /// <para>
+    /// If the transformation function throws an exception, the exception propagates and breaks the chain.
     /// For exception-safe execution, use the <see cref="ResultTryExtensions.Try{T}"/> method
     /// combined with the <see cref="Bind{T, U}"/> method.
+    /// </para>
     /// </remarks>
+    /// <example>
+    /// <code>
+    /// // Map: function returns plain value (not Result)
+    /// Result&lt;int&gt; result = Result&lt;int&gt;.Success(5);
+    /// Result&lt;string&gt; mapped = result.Map(x => $"Value: {x}"); // string, not Result&lt;string&gt;
+    /// 
+    /// // DTO mapping
+    /// Result&lt;UserDto&gt; dto = userResult.Map(user => new UserDto(user.Id, user.Email));
+    /// </code>
+    /// </example>
     //==============================================================================================
     public static Result<U> Map<T, U>(this Result<T> result, Func<T, U> func)
     {
@@ -79,18 +98,39 @@ public static class ResultExtensions
 
     //==============================================================================================
     /// <summary>
-    /// Chains another operation to the result, which itself returns a Result.
+    /// Chains a Result-returning operation to this result (flatMap/SelectMany pattern).
     /// </summary>
     /// <typeparam name="T">The source result value type.</typeparam>
     /// <typeparam name="U">The target result value type.</typeparam>
     /// <param name="result">The source result.</param>
-    /// <param name="func">The chained operation function.</param>
+    /// <param name="func">The chained operation function that returns a Result (not a plain value).</param>
     /// <returns>The result of the chained operation or the original error.</returns>
     /// <remarks>
+    /// <para>
+    /// Use Bind when you want to chain another operation that RETURNS a Result. This prevents
+    /// nested Result&lt;Result&lt;T&gt;&gt; wrapping (flatMap pattern).
+    /// </para>
+    /// <para>
+    /// Common use cases: validation chains, repository calls, any operation that can fail.
+    /// </para>
+    /// <para>
     /// If the chained operation function throws an exception, the exception propagates and breaks
     /// the chain. For exception-safe execution, use the <see cref="ResultTryExtensions.Try{T}"/>
     /// method inside the function.
+    /// </para>
     /// </remarks>
+    /// <example>
+    /// <code>
+    /// // Bind: function returns Result (not plain value)
+    /// Result&lt;User&gt; userResult = GetUser(id);
+    /// Result&lt;Order&gt; orderResult = userResult.Bind(user => GetOrder(user.Id)); // Result&lt;Order&gt;
+    /// 
+    /// // Validation chain (fail-fast)
+    /// var validated = ValidateEmail(email)
+    ///     .Bind(() => ValidatePassword(password))
+    ///     .Bind(() => CheckEmailNotExists(email));
+    /// </code>
+    /// </example>
     //==============================================================================================
     public static Result<U> Bind<T, U>(this Result<T> result, Func<T, Result<U>> func)
     {
@@ -337,17 +377,23 @@ public static class ResultExtensions
 
     //==============================================================================================
     /// <summary>
-    /// Asynchronously maps the result value to a new type.
+    /// Asynchronously transforms the result value to a new type using a function that returns a plain value.
     /// </summary>
     /// <typeparam name="T">The source result value type.</typeparam>
     /// <typeparam name="U">The target result value type.</typeparam>
     /// <param name="result">The source result.</param>
-    /// <param name="func">The asynchronous mapping function.</param>
-    /// <returns>The transformed value on success, or the original error on failure.</returns>
+    /// <param name="func">The asynchronous transformation function that returns a plain value (not a Result).</param>
+    /// <returns>The transformed value wrapped in Result on success, or the original error on failure.</returns>
     /// <remarks>
-    /// If the asynchronous mapping function throws an exception, the exception propagates and breaks
+    /// <para>
+    /// Use MapAsync when you want to asynchronously transform the success value using a function
+    /// that does NOT return a Result. The Result wrapper is automatically added.
+    /// </para>
+    /// <para>
+    /// If the asynchronous transformation function throws an exception, the exception propagates and breaks
     /// the chain. For exception-safe execution, use the <see cref="ResultTryExtensions.TryAsync{T}"/>
     /// method combined with the <see cref="BindAsync{T, U}(Result{T}, Func{T, Task{Result{U}}})"/> method.
+    /// </para>
     /// </remarks>
     //==============================================================================================
     public static async Task<Result<U>> MapAsync<T, U>(this Result<T> result, Func<T, Task<U>> func)
@@ -366,17 +412,23 @@ public static class ResultExtensions
 
     //==============================================================================================
     /// <summary>
-    /// Asynchronously chains another operation to the result.
+    /// Asynchronously chains a Result-returning operation to this result (flatMap/SelectMany pattern).
     /// </summary>
     /// <typeparam name="T">The source result value type.</typeparam>
     /// <typeparam name="U">The target result value type.</typeparam>
     /// <param name="result">The source result.</param>
-    /// <param name="func">The asynchronous chained operation function.</param>
+    /// <param name="func">The asynchronous chained operation function that returns a Result (not a plain value).</param>
     /// <returns>The result of the chained operation or the original error.</returns>
     /// <remarks>
+    /// <para>
+    /// Use BindAsync when you want to asynchronously chain another operation that RETURNS a Result.
+    /// This prevents nested Result&lt;Result&lt;T&gt;&gt; wrapping.
+    /// </para>
+    /// <para>
     /// If the asynchronous chained operation function throws an exception, the exception propagates
     /// and breaks the chain. For exception-safe execution, use the
     /// <see cref="ResultTryExtensions.TryAsync{T}"/> method inside the function.
+    /// </para>
     /// </remarks>
     //==============================================================================================
     public static async Task<Result<U>> BindAsync<T, U>(this Result<T> result, Func<T, Task<Result<U>>> func)
@@ -483,17 +535,23 @@ public static class ResultExtensions
 
     //==============================================================================================
     /// <summary>
-    /// Asynchronously maps the result value to a new type.
+    /// Asynchronously transforms the result value to a new type using a function that returns a plain value.
     /// </summary>
     /// <typeparam name="T">The source result value type.</typeparam>
     /// <typeparam name="U">The target result value type.</typeparam>
     /// <param name="resultTask">The task containing the source result.</param>
-    /// <param name="func">The asynchronous mapping function.</param>
-    /// <returns>The transformed value on success, or the original error on failure.</returns>
+    /// <param name="func">The asynchronous transformation function that returns a plain value (not a Result).</param>
+    /// <returns>The transformed value wrapped in Result on success, or the original error on failure.</returns>
     /// <remarks>
-    /// If the asynchronous mapping function throws an exception, the exception propagates and breaks
+    /// <para>
+    /// Use MapAsync when you want to asynchronously transform the success value using a function
+    /// that does NOT return a Result. The Result wrapper is automatically added.
+    /// </para>
+    /// <para>
+    /// If the asynchronous transformation function throws an exception, the exception propagates and breaks
     /// the chain. For exception-safe execution, use the <see cref="ResultTryExtensions.TryAsync{T}"/>
     /// method combined with the <see cref="BindAsync{T, U}(Task{Result{T}}, Func{T, Task{Result{U}}})"/> method.
+    /// </para>
     /// </remarks>
     //==============================================================================================
     public static async Task<Result<U>> MapAsync<T, U>(this Task<Result<T>> resultTask, Func<T, Task<U>> func)
@@ -513,17 +571,23 @@ public static class ResultExtensions
 
     //==============================================================================================
     /// <summary>
-    /// Asynchronously chains another operation to the result.
+    /// Asynchronously chains a Result-returning operation to this result (flatMap/SelectMany pattern).
     /// </summary>
     /// <typeparam name="T">The source result value type.</typeparam>
     /// <typeparam name="U">The target result value type.</typeparam>
     /// <param name="resultTask">The task containing the source result.</param>
-    /// <param name="func">The asynchronous chained operation function.</param>
+    /// <param name="func">The asynchronous chained operation function that returns a Result (not a plain value).</param>
     /// <returns>The result of the chained operation or the original error.</returns>
     /// <remarks>
+    /// <para>
+    /// Use BindAsync when you want to asynchronously chain another operation that RETURNS a Result.
+    /// This prevents nested Result&lt;Result&lt;T&gt;&gt; wrapping.
+    /// </para>
+    /// <para>
     /// If the asynchronous chained operation function throws an exception, the exception propagates
     /// and breaks the chain. For exception-safe execution, use the
     /// <see cref="ResultTryExtensions.TryAsync{T}"/> method inside the function.
+    /// </para>
     /// </remarks>
     //==============================================================================================
     public static async Task<Result<U>> BindAsync<T, U>(this Task<Result<T>> resultTask, Func<T, Task<Result<U>>> func)

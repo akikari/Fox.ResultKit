@@ -18,6 +18,7 @@ A lightweight, type-safe result handling library for .NET applications that elim
 - [Features](#features)
 - [Installation](#installation)
 - [Usage](#usage)
+- [Understanding Map vs Bind](#understanding-map-vs-bind)
 - [API Reference](#api-reference)
 - [Design Principles](#design-principles)
 - [Requirements](#requirements)
@@ -563,6 +564,69 @@ public async Task<IActionResult> CreateUser([FromBody] CreateUserRequest request
 - ✅ Domain logic: Fail-fast makes sense (e.g., if email exists, don't continue)
 - ✅ Clear separation: Input vs. business logic concerns
 
+## 🔗 Understanding Map vs Bind
+
+The difference between `Map` and `Bind` is fundamental to Railway Oriented Programming:
+
+### Map - Value Transformation
+**"Transform the value with a plain function"**
+
+```csharp
+Result<T> → Func<T, U> → Result<U>
+                    ↑
+              Plain value (not Result!)
+```
+
+- Function returns a **plain value** (`U`)
+- Result wrapper is **automatically added**
+- Use for: DTO mapping, calculations, string formatting, any pure transformation
+
+**Example:**
+```csharp
+Result<int> result = Result<int>.Success(5);
+Result<string> mapped = result.Map(x => $"Value: {x}"); 
+                                     // ↑ returns string, NOT Result<string>
+
+// DTO mapping
+Result<UserDto> dto = userResult.Map(user => new UserDto(user.Id, user.Email));
+```
+
+### Bind - Operation Chaining
+**"Chain another Result-returning operation"**
+
+```csharp
+Result<T> → Func<T, Result<U>> → Result<U>
+                    ↑
+              Returns Result!
+```
+
+- Function returns a **Result** (`Result<U>`)
+- Prevents nested wrapping (`Result<Result<U>>`)
+- Use for: validation chains, repository calls, any operation that can fail
+
+**Example:**
+```csharp
+Result<User> userResult = GetUser(id);
+Result<Order> orderResult = userResult.Bind(user => GetOrder(user.Id)); 
+                                                 // ↑ returns Result<Order>, not Order
+
+// Validation chain (fail-fast)
+var validated = ValidateEmail(email)
+    .Bind(() => ValidatePassword(password))
+    .Bind(() => CheckEmailNotExists(email));
+```
+
+### Quick Reference
+
+| Aspect | Map | Bind |
+|--------|-----|------|
+| **Function returns** | `U` (plain value) | `Result<U>` |
+| **Use case** | Value transformation | Result operation chaining |
+| **Example function** | `x => x * 2` | `x => Validate(x)` |
+| **FP alias** | fmap, Select | flatMap, SelectMany |
+
+**Rule of thumb:** If your function returns `Result`, use `Bind`. If it returns a plain value, use `Map`.
+
 ## 🏗️ API Reference
 
 ### Result
@@ -622,18 +686,18 @@ public async Task<IActionResult> CreateUser([FromBody] CreateUserRequest request
 
 | Method | Description |
 |--------|-------------|
-| `Map<T, U>(this Result<T>, Func<T, U>)` | Transforms success value to new type |
-| `MapAsync<T, U>(this Result<T>, Func<T, Task<U>>)` | Async transform |
-| `MapAsync<T, U>(this Task<Result<T>>, Func<T, Task<U>>)` | Async result to async transform |
+| `Map<T, U>(this Result<T>, Func<T, U>)` | Transforms success value with function returning plain value (DTO mapping, calculations) |
+| `MapAsync<T, U>(this Result<T>, Func<T, Task<U>>)` | Async transform with function returning plain value |
+| `MapAsync<T, U>(this Task<Result<T>>, Func<T, Task<U>>)` | Async result to async transform with plain value return |
 
 #### Chaining
 
 | Method | Description |
 |--------|-------------|
-| `Bind(this Result, Func<Result>)` | Chains non-generic Result operations (fail-fast validation chains) |
-| `Bind<T, U>(this Result<T>, Func<T, Result<U>>)` | Chains operations that return Result |
-| `BindAsync<T, U>(this Result<T>, Func<T, Task<Result<U>>>)` | Async bind |
-| `BindAsync<T, U>(this Task<Result<T>>, Func<T, Task<Result<U>>>)` | Async result to async bind |
+| `Bind(this Result, Func<Result>)` | Chains operation returning Result (fail-fast validation, prevents nesting) |
+| `Bind<T, U>(this Result<T>, Func<T, Result<U>>)` | Chains operation returning Result (repository calls, validation) |
+| `BindAsync<T, U>(this Result<T>, Func<T, Task<Result<U>>>)` | Async bind with Result-returning operation |
+| `BindAsync<T, U>(this Task<Result<T>>, Func<T, Task<Result<U>>>)` | Async result to async bind with Result return |
 
 #### Validation
 

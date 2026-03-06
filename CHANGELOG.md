@@ -7,7 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-_No unreleased changes yet._
+### Changed
+
+#### Documentation
+- Enhanced XML documentation for Map and Bind methods with clearer distinction
+- Map: Explicitly states function returns "plain value (not a Result)"
+- Bind: Explicitly states function returns "Result (not a plain value)" with flatMap/SelectMany pattern reference
+- Added code examples to XML docs showing the key difference between transformation (Map) and chaining (Bind)
+- Applied to all variants: Map/MapAsync (sync and async), Bind/BindAsync (sync and async)
 
 ## [1.3.0] - 2026-03-01
 
